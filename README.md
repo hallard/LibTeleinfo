@@ -5,10 +5,10 @@ This is a generic Teleinfo French Meter Measure Library, it can be used on Ardui
 
 You can see Teleinformation official french datasheet [there][1]
 
-Since this is really dedicted to French energy measuring system, I will continue in French
+Since this is really dedicated to French energy measuring system, I will continue in French
 
 ###Installation
-Copier le contenu de ce dossier (fichier zip) dans le dossier libraries de votre environnement Arduino Vous devriez avoir maintenant quelque chose comme "your_sketchbook_folder/libraries/LibTeleinfo" et ce dossier doit contentir les fichiers .cpp et .h ainsi que le sous dossier examples.
+Copier le contenu de ce dossier (download zip) dans le dossier libraries de votre environnement Arduino Vous devriez avoir maintenant quelque chose comme `your_sketchbook_folder/libraries/LibTeleinfo` et ce dossier doit contentir les fichiers .cpp et .h ainsi que le sous dossier `examples`.
 <br/>
 Pour trouver votre dossier de sketchbook, dans l'environnement IDE, allez dans File>Preferences.
 <br/>
