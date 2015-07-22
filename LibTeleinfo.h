@@ -90,6 +90,7 @@ enum _State_e {
 #define TINFO_FLAGS_ADDED   0x02
 #define TINFO_FLAGS_EXIST   0x04
 #define TINFO_FLAGS_UPDATED 0x08
+#define TINFO_FLAGS_ALERT   0x10
 
 // Local buffer for one line of teleinfo
 #define TINFO_BUFSIZE  64
