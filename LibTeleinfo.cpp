@@ -139,7 +139,7 @@ Input     : Pointer to the label name
 Output    : pointer to the new node (or founded one)
             state of the label changed by the function
 ====================================================================== */
-ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t * valuestate)
+ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t * flags)
 {
 	// Get our linked list 
 	ValueList * me = &_valueslist;
@@ -148,7 +148,7 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
 	uint8_t lgvalue = strlen(value);
 
   // clear flags
-  *valuestate = TINFO_FLAGS_NONE ;
+  *flags = TINFO_FLAGS_NONE ;
 
   // Got one and all seems good ?
   if (me && lgname && lgvalue && checksum) {
@@ -157,7 +157,7 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
     ValueList *parNode = NULL ;
 
     // By default we done nothing
-    *valuestate = TINFO_FLAGS_NOTHING;
+    *flags = TINFO_FLAGS_NOTHING;
 
     // Loop thru the node
     while (me->next) {
@@ -172,13 +172,12 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
         // Already got also this value, return US
         if (strncmp(me->value, value, lgvalue) == 0) {
           me->flags = TINFO_FLAGS_EXIST;
-          *valuestate = me->flags;
+          *flags = me->flags;
           return ( me );
-        }
-        else {
+        } else {
           // We changed the value
           me->flags = TINFO_FLAGS_UPDATED;
-          *valuestate = me->flags;
+          *flags = me->flags;
           // Do we have enought space to hold new value ?
           if (strlen(me->value) >= lgvalue ) {
             // Copy it
@@ -187,8 +186,7 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
 
             // That's all
             return (me);
-          }
-          else {
+          } else {
             // indicate parent node next following node instead of me
             parNode->next = me->next;
 
@@ -205,23 +203,14 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
     // Our linked list structure sizeof(ValueList)
     // + Name  + '\0'
     // + Value + '\0'
-
 		size_t size = sizeof(ValueList) + lgname + 1 + lgvalue + 1  ;
     // Create new node with size to store strings
-    if ((newNode = (ValueList  *) malloc(size) ) == NULL) {
+    if ((newNode = (ValueList  *) malloc(size) ) == NULL) 
       return ( (ValueList *) NULL );
-    }
-    else {
+    else 
     	// get our buffer Safe
       memset(newNode, 0, size);
-
-      // We not changed this node ?
-      if (me->flags != TINFO_FLAGS_UPDATED)
-        // so we added this node !
-        me->flags = TINFO_FLAGS_ADDED;
-        *valuestate = me->flags  ;
-    }
-
+    
     // Put the new node on the list
     me->next = newNode;
 
@@ -234,6 +223,14 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
     // Copy the string data
     memcpy(newNode->name , name  , lgname );
     memcpy(newNode->value, value , lgvalue );
+
+    // So we just created this node but was it new
+    // or was matter of text size ?
+    if (*flags != TINFO_FLAGS_UPDATED) {
+        // so we added this node !
+        newNode->flags = TINFO_FLAGS_ADDED;
+        *flags = newNode->flags  ;
+    }
 
     // return pointer on the new node
     return (newNode);
@@ -471,7 +468,7 @@ ValueList * TInfo::checkLine(char * pline)
   char * pvalue;
   char   checksum;
   char  buff[TINFO_BUFSIZE];
-  uint8_t value_state;
+  uint8_t flags;
   boolean err = true ;	// Assume  error
   int len ; // Group len
 
@@ -530,18 +527,18 @@ ValueList * TInfo::checkLine(char * pline)
 	          customLabel(ptok, pvalue);
 
 	          // Add value to linked lists of values
-	          ValueList * me = valueAdd(ptok, pvalue, checksum, &value_state);
+	          ValueList * me = valueAdd(ptok, pvalue, checksum, &flags);
 
 	          // value correctly added/changed
 	          if ( me ) {
 				        // something to do with new datas
-			        if (value_state & (TINFO_FLAGS_UPDATED | TINFO_FLAGS_ADDED) ) {
+			        if (flags & (TINFO_FLAGS_UPDATED | TINFO_FLAGS_ADDED) ) {
 			        	// this frame will for sure be updated
 			        	_frame_updated = true;
 
 			        	// Do we need to advertise user callback
 			        	if (_fn_data)
-			        		_fn_data(me, value_state);
+			        		_fn_data(me, flags);
 			        }
 	          }
 	        }
