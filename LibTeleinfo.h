@@ -85,14 +85,15 @@ enum _State_e {
 };
 
 // what we done with received value (also for callback flags)
-#define TINFO_FLAGS_NONE    0x00
-#define TINFO_FLAGS_NOTHING 0x01
-#define TINFO_FLAGS_ADDED   0x02
-#define TINFO_FLAGS_EXIST   0x04
-#define TINFO_FLAGS_UPDATED 0x08
-#define TINFO_FLAGS_ALERT   0x10
+#define TINFO_FLAGS_NONE     0x00
+#define TINFO_FLAGS_NOTHING  0x01
+#define TINFO_FLAGS_ADDED    0x02
+#define TINFO_FLAGS_EXIST    0x04
+#define TINFO_FLAGS_UPDATED  0x08
+#define TINFO_FLAGS_ALERT    0x80 /* This will generate an alert */
 
-// Local buffer for one line of teleinfo
+// Local buffer for one line of teleinfo 
+// maximum size, I think it should be enought
 #define TINFO_BUFSIZE  64
 
 // Teleinfo start and end of frame characters
@@ -111,6 +112,7 @@ class TInfo
     void        attachData(void (*_fn_data)(ValueList * valueslist, uint8_t state));  
     void        attachNewFrame(void (*_fn_new_frame)(ValueList * valueslist));  
     void        attachUpdatedFrame(void (*_fn_updated_frame)(ValueList * valueslist));  
+    ValueList * addCustomValue(char * name, char * value, uint8_t * flags);
     ValueList * getList(void);
     uint8_t     valuesDump(void);
     char *      valueGet(char * name, char * value);
@@ -118,10 +120,12 @@ class TInfo
 
   private:
     uint8_t       clearBuffer();
-    ValueList *   valueAdd (char * name, char * value, uint8_t checksum, uint8_t * valuestate);
+    ValueList *   valueAdd (char * name, char * value, uint8_t checksum, uint8_t * flags);
+    boolean       valueRemove (char * name);
+    boolean       valueRemoveFlagged(uint8_t flags);
     int           labelCount();
     unsigned char calcChecksum(char *etiquette, char *valeur) ;
-    void          customLabel( char * plabel, char * pvalue) ;
+    void          customLabel( char * plabel, char * pvalue, uint8_t * pflags) ;
     ValueList *   checkLine(char * pline) ;
 
     _State_e  _state; // Teleinfo machine state

@@ -129,15 +129,50 @@ uint8_t TInfo::clearBuffer()
 	_recv_idx = 0;
 }
 
+
 /* ======================================================================
-Function  : valueAdd
-Purpose   : Add element to the Linked List of values
-Input     : Pointer to the label name
-            pointer to the value
-            checksum value
-            state of the label (filled by function)
-Output    : pointer to the new node (or founded one)
-            state of the label changed by the function
+Function: addCustomValue
+Purpose : let user add custom values (mainly for testing)
+Input   : Pointer to the label name
+          pointer to the value
+          pointer on flag state of the label 
+Output  : pointer to the new node (or founded one)
+Comments: checksum is calculated before adding, no need to bother with
+====================================================================== */
+ValueList * TInfo::addCustomValue(char * name, char * value, uint8_t * flags)
+{
+  // Little check
+  if (name && *name && value && *value) 
+  {
+    ValueList * me;
+
+    // Same as if we really received this line
+    customLabel(name, value, flags);
+    me = valueAdd(name, value, calcChecksum(name,value), flags);
+
+    if ( me ) {
+      // something to do with new datas
+      if (*flags & (TINFO_FLAGS_UPDATED | TINFO_FLAGS_ADDED | TINFO_FLAGS_ALERT) ) {
+        // this frame will for sure be updated
+        _frame_updated = true;
+      }
+      return (me);
+    }
+  }
+
+  // Error or Already Exists
+  return ( (ValueList *) NULL);
+}
+
+/* ======================================================================
+Function: valueAdd
+Purpose : Add element to the Linked List of values
+Input   : Pointer to the label name
+          pointer to the value
+          checksum value
+          flag state of the label (modified by function)
+Output  : pointer to the new node (or founded one)
+Comments: - state of the label changed by the function
 ====================================================================== */
 ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t * flags)
 {
@@ -146,19 +181,130 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
 
 	uint8_t lgname = strlen(name);
 	uint8_t lgvalue = strlen(value);
+  uint8_t thischeck = calcChecksum(name,value);
+  
+  // just some paranoia 
+  if (thischeck != checksum ) {
+    TI_Debug(name);
+    TI_Debug('=');
+    TI_Debug(value);
+    TI_Debug(F(" '"));
+    TI_Debug((char) cheksum);
+    TI_Debug(F("' Not added bad checksum calulated '"));
+    TI_Debug((char) thischeck);
+    TI_Debugln(F("'"));
+  } else  {
+    // Got one and all seems good ?
+    if (me && lgname && lgvalue && checksum) {
+      // Create pointer on the new node
+      ValueList *newNode = NULL;
+      ValueList *parNode = NULL ;
 
-  // clear flags
-  *flags = TINFO_FLAGS_NONE ;
+      // Loop thru the node
+      while (me->next) {
+        // save parent node
+        parNode = me ;
+
+        // go to next node
+        me = me->next;
+
+        // Check if we already have this LABEL
+        if (strncmp(me->name, name, lgname) == 0) {
+          // Already got also this value, return US
+          if (strncmp(me->value, value, lgvalue) == 0) {
+            *flags |= TINFO_FLAGS_EXIST;
+            me->flags = *flags;
+            return ( me );
+          } else {
+            // We changed the value
+            *flags |= TINFO_FLAGS_UPDATED;
+            me->flags = *flags ;
+            // Do we have enought space to hold new value ?
+            if (strlen(me->value) >= lgvalue ) {
+              // Copy it
+              strncpy(me->value, value , lgvalue );
+              me->checksum = checksum ;
+
+              // That's all
+              return (me);
+            } else {
+              // indicate our parent node that the next node
+              // is not us anymore but the next we have
+              parNode->next = me->next;
+
+              // free up this node
+              free (me);
+
+              // Return to parent (that will now point on next node and not us)
+              // and continue loop just in case we have sevral with same name
+              me = parNode;
+            }
+          }
+        }
+      }
+
+      // Our linked list structure sizeof(ValueList)
+      // + Name  + '\0'
+      // + Value + '\0'
+  		size_t size = sizeof(ValueList) + lgname + 1 + lgvalue + 1  ;
+      // Create new node with size to store strings
+      if ((newNode = (ValueList  *) malloc(size) ) == NULL) 
+        return ( (ValueList *) NULL );
+      else 
+      	// get our buffer Safe
+        memset(newNode, 0, size);
+      
+      // Put the new node on the list
+      me->next = newNode;
+
+      // First String located after last struct element
+      // Second String located after the First + \0
+      newNode->checksum = checksum;
+      newNode->name = (char *)  newNode + sizeof(ValueList);
+      newNode->value = (char *) newNode->name + lgname + 1;
+
+      // Copy the string data
+      memcpy(newNode->name , name  , lgname );
+      memcpy(newNode->value, value , lgvalue );
+
+      // So we just created this node but was it new
+      // or was matter of text size ?
+      if ( (*flags & TINFO_FLAGS_UPDATED) == 0) {
+        // so we added this node !
+        *flags |= TINFO_FLAGS_ADDED ;
+        newNode->flags = *flags;
+      }
+
+      // return pointer on the new node
+      return (newNode);
+    }
+
+  } // Checksum OK
+
+
+  // Error or Already Exists
+  return ( (ValueList *) NULL);
+}
+
+
+
+/* ======================================================================
+Function: valueRemoveFlagged
+Purpose : remove element to the Linked List of values where 
+Input   : paramter flags
+Output  : true if found and removed
+Comments: -
+====================================================================== */
+boolean TInfo::valueRemoveFlagged(uint8_t flags)
+{
+  boolean deleted = false;
+
+  // Get our linked list 
+  ValueList * me = &_valueslist;
+  ValueList *parNode = NULL ;
 
   // Got one and all seems good ?
-  if (me && lgname && lgvalue && checksum) {
-    // Create pointer on the new node
-    ValueList *newNode = NULL;
-    ValueList *parNode = NULL ;
-
-    // By default we done nothing
-    *flags = TINFO_FLAGS_NOTHING;
-
+  if (me) {
     // Loop thru the node
     while (me->next) {
       // save parent node
@@ -167,85 +313,79 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
       // go to next node
       me = me->next;
 
-      // Check if we already have this LABEL
-      if (strncmp(me->name, name, lgname) == 0) {
-        // Already got also this value, return US
-        if (strncmp(me->value, value, lgvalue) == 0) {
-          me->flags = TINFO_FLAGS_EXIST;
-          *flags = me->flags;
-          return ( me );
-        } else {
-          // We changed the value
-          me->flags = TINFO_FLAGS_UPDATED;
-          *flags = me->flags;
-          // Do we have enought space to hold new value ?
-          if (strlen(me->value) >= lgvalue ) {
-            // Copy it
-            strncpy(me->value, value , lgvalue );
-            me->checksum = checksum ;
+      // found the flags?
+      if (me->flags & flags ) {
+        // indicate our parent node that the next node
+        // is not us anymore but the next we have
+        parNode->next = me->next;
 
-            // That's all
-            return (me);
-          } else {
-            // indicate parent node next following node instead of me
-            parNode->next = me->next;
+        // free up this node
+        free (me);
 
-            // Return to parent (that will now point on next node and not us)
-            me = parNode;
-
-            // free up this node
-            free (me);
-          }
-        }
+        // Return to parent (that will now point on next node and not us)
+        // and continue loop just in case we have sevral with same name
+        me = parNode;
+        deleted = true;
       }
     }
-
-    // Our linked list structure sizeof(ValueList)
-    // + Name  + '\0'
-    // + Value + '\0'
-		size_t size = sizeof(ValueList) + lgname + 1 + lgvalue + 1  ;
-    // Create new node with size to store strings
-    if ((newNode = (ValueList  *) malloc(size) ) == NULL) 
-      return ( (ValueList *) NULL );
-    else 
-    	// get our buffer Safe
-      memset(newNode, 0, size);
-    
-    // Put the new node on the list
-    me->next = newNode;
-
-    // First String located after last struct element
-    // Second String located after the First + \0
-    newNode->checksum = checksum;
-    newNode->name = (char *)  newNode + sizeof(ValueList);
-    newNode->value = (char *) newNode->name + lgname + 1;
-
-    // Copy the string data
-    memcpy(newNode->name , name  , lgname );
-    memcpy(newNode->value, value , lgvalue );
-
-    // So we just created this node but was it new
-    // or was matter of text size ?
-    if (*flags != TINFO_FLAGS_UPDATED) {
-        // so we added this node !
-        newNode->flags = TINFO_FLAGS_ADDED;
-        *flags = newNode->flags  ;
-    }
-
-    // return pointer on the new node
-    return (newNode);
   }
 
-  // Error or Already Exists
-  return ( (ValueList *) NULL);
+  return (deleted);
 }
 
 /* ======================================================================
-Function  : valueGet
-Purpose   : get value of one element
-Input     : Pointer to the label name
-            pointer to the value where we fill data 
-Output    : pointer to the value where we filled data NULL is not found
+Function: valueRemove
+Purpose : remove element to the Linked List of values
+Input   : Pointer to the label name
+Output  : true if found and removed
+Comments: -
+====================================================================== */
+boolean TInfo::valueRemove(char * name)
+{
+  boolean deleted = false;
+
+  // Get our linked list 
+  ValueList * me = &_valueslist;
+  ValueList *parNode = NULL ;
+
+  uint8_t lgname = strlen(name);
+
+  // Got one and all seems good ?
+  if (me && lgname) {
+    // Loop thru the node
+    while (me->next) {
+      // save parent node
+      parNode = me ;
+
+      // go to next node
+      me = me->next;
+
+      // found ?
+      if (strncmp(me->name, name, lgname) == 0) {
+        // indicate our parent node that the next node
+        // is not us anymore but the next we have
+        parNode->next = me->next;
+
+        // free up this node
+        free (me);
+
+        // Return to parent (that will now point on next node and not us)
+        // and continue loop just in case we have sevral with same name
+        me = parNode;
+        deleted = true;
+      }
+    }
+  }
+
+  return (deleted);
+}
+
+/* ======================================================================
+Function: valueGet
+Purpose : get value of one element
+Input   : Pointer to the label name
+          pointer to the value where we fill data 
+Output  : pointer to the value where we filled data NULL is not found
 ====================================================================== */
 char * TInfo::valueGet(char * name, char * value)
 {
@@ -279,10 +419,10 @@ char * TInfo::valueGet(char * name, char * value)
 }
 
 /* ======================================================================
-Function  : getTopList
-Purpose   : return a pointer on the top of the linked list
-Input     : -
-Output    : Pointer 
+Function: getTopList
+Purpose : return a pointer on the top of the linked list
+Input   : -
+Output  : Pointer 
 ====================================================================== */
 ValueList * TInfo::getList(void)
 {
@@ -291,10 +431,10 @@ ValueList * TInfo::getList(void)
 }
 
 /* ======================================================================
-Function  : valuesDump
-Purpose   : dump linked list content
-Input     : -
-Output    : total number of values
+Function: valuesDump
+Purpose : dump linked list content
+Input   : -
+Output  : total number of values
 ====================================================================== */
 uint8_t TInfo::valuesDump(void)
 {
@@ -331,7 +471,8 @@ uint8_t TInfo::valuesDump(void)
 
       // Flags management
       if ( me->flags) {
-        TI_Debug(F("Flags : ")); 
+        TI_Debug(F("Flags:0x")); 
+        TI_Debugf("%02X =>", me->flags); 
         if ( me->flags & TINFO_FLAGS_EXIST)
           TI_Debug(F("Exist ")) ;
         if ( me->flags & TINFO_FLAGS_UPDATED)
@@ -434,23 +575,38 @@ unsigned char TInfo::calcChecksum(char *etiquette, char *valeur)
 Function: customLabel
 Purpose : do action when received a correct label / value + checksum line
 Input   : plabel : pointer to string containing the label
-        : pvalue : pointer to string containing the associated value
+          pvalue : pointer to string containing the associated value
+          pflags pointer in flags value if we need to cchange it
 Output  : 
 Comments: 
 ====================================================================== */
-void TInfo::customLabel( char * plabel, char * pvalue) 
+void TInfo::customLabel( char * plabel, char * pvalue, uint8_t * pflags) 
 {
-  // Traitement de l'ADPS demandé
-	if (_fn_ADPS) {
-		// Monophasé
-    if (strcmp(plabel, "ADPS")==0 )
-			_fn_ADPS(0);
+  int8_t phase = -1;
 
-		// triphasé c'est ADIR + Num Phase
-		if (plabel[0]=='A' && plabel[1]=='D' && plabel[2]=='I' && plabel[3]=='R' )
-			if (plabel[4]>='1' && plabel[4]<='3')
-				_fn_ADPS(plabel[4]-'0');
-	}
+  // Monophasé
+  if (strcmp(plabel, "ADPS")==0 ) 
+    phase=0;
+
+  // For testing
+  //if (strcmp(plabel, "IINST")==0 ) {
+  //  *pflags |= TINFO_FLAGS_ALERT;
+  //}
+
+	// triphasé c'est ADIR + Num Phase
+	if (plabel[0]=='A' && plabel[1]=='D' && plabel[2]=='I' && plabel[3]=='R' )
+		if (plabel[4]>='1' && plabel[4]<='3') 
+   	  phase = plabel[4]-'0';
+
+  // Nous avons un ADPS ?
+  if (phase>=0 && phase <=3) {
+    // ne doit pas être sauvé définitivement
+    *pflags |= TINFO_FLAGS_ALERT;
+  
+    // Traitement de l'ADPS demandé par le sketch
+    if (_fn_ADPS) 
+      _fn_ADPS(phase);
+  }
 }
 
 /* ======================================================================
@@ -468,7 +624,7 @@ ValueList * TInfo::checkLine(char * pline)
   char * pvalue;
   char   checksum;
   char  buff[TINFO_BUFSIZE];
-  uint8_t flags;
+  uint8_t flags  = TINFO_FLAGS_NONE;
   boolean err = true ;	// Assume  error
   int len ; // Group len
 
@@ -524,15 +680,15 @@ ValueList * TInfo::checkLine(char * pline)
 	        // Is checksum is OK
 	        if ( calcChecksum(ptok,pvalue) == checksum) {
 	          // In case we need to do things on specific labels
-	          customLabel(ptok, pvalue);
+	          customLabel(ptok, pvalue, &flags);
 
 	          // Add value to linked lists of values
 	          ValueList * me = valueAdd(ptok, pvalue, checksum, &flags);
 
 	          // value correctly added/changed
 	          if ( me ) {
-				        // something to do with new datas
-			        if (flags & (TINFO_FLAGS_UPDATED | TINFO_FLAGS_ADDED) ) {
+				      // something to do with new datas
+			        if (flags & (TINFO_FLAGS_UPDATED | TINFO_FLAGS_ADDED | TINFO_FLAGS_ALERT) ) {
 			        	// this frame will for sure be updated
 			        	_frame_updated = true;
 
@@ -596,6 +752,15 @@ _State_e TInfo::process(char c)
 		  		_fn_updated_frame(me);
 		  	else if (_fn_new_frame)
 	  			_fn_new_frame(me);
+
+        #ifdef TI_Debug
+          valuesDump();
+        #endif
+
+        // It's important there since all user job is done
+        // to remove the alert flags from table (ADPS for example)
+        // it will be put back again next time if any
+        valueRemoveFlagged(TINFO_FLAGS_ALERT);
 	  	}
 
 	  	// We were waiting fo this one ?
