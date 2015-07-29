@@ -47,7 +47,7 @@ Vous pouvez aller voir les nouveautés et autres projets sur [blog][7]
 
 [3]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/Arduino_Softserial/Arduino_Softserial_Etiquette.ino
 [4]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/Arduino_Softserial_JSON/Arduino_Softserial_JSON.ino
-[5]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/ESP8266_WifInfo/ESP8266_WifInfo.ino
+[5]: https://github.com/hallard/LibTeleinfo/tree/master/examples/ESP8266_WifInfo/ESP8266_WifInfo.ino
 [11]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/Arduino_Softserial/Arduino_Softserial_Blink.ino
 [12]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/Raspberry_JSON/Raspberry_JSON.ino
 
