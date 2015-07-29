@@ -24,7 +24,7 @@ Pour les commentaires et le support vous pouvez allez sur le [forum][8] dédié 
 - [Arduino_Softserial_Blink][11] Affiche des informations de téléinformation reçue trame par trame avec clignotement LED court/long si les données ont été modifiés
 - [Arduino_Softserial_JSON][4] Retourne les informations de téléinformation au format JSON sur la liaison série.
 - [Raspberry_JSON][12] Retourne les informations de téléinformation au format JSON sur stdout.
-- [ESP8266_WEB][5] ESP8266 Web dynamic + Rest application, version en cours de développement, à venir.
+- [ESP8266_WifInfo][5] ESP8266 Wifi Teleinformation, Web + Rest + bonus, version en cours de développement, à venir.
 
 ##Pourquoi
 - J'utilise la téléinfo dans plusieurs de mes programmes et j'en avait marre de devoir faire des copier/coller de code constament, j'ai donc décidé de faire une librairie commune que j'utilise sans me poser de question
@@ -47,7 +47,7 @@ Vous pouvez aller voir les nouveautés et autres projets sur [blog][7]
 
 [3]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/Arduino_Softserial/Arduino_Softserial_Etiquette.ino
 [4]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/Arduino_Softserial_JSON/Arduino_Softserial_JSON.ino
-[5]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/ESP8266_WEB/ESP8266_WEB.ino
+[5]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/ESP8266_WifInfo/ESP8266_WifInfo.ino
 [11]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/Arduino_Softserial/Arduino_Softserial_Blink.ino
 [12]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/Raspberry_JSON/Raspberry_JSON.ino
 
