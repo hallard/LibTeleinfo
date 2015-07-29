@@ -24,7 +24,7 @@ Pour les commentaires et le support vous pouvez allez sur le [forum][8] dédié 
 - [Arduino_Softserial_Blink][11] Affiche des informations de téléinformation reçue trame par trame avec clignotement LED court/long si les données ont été modifiés
 - [Arduino_Softserial_JSON][4] Retourne les informations de téléinformation au format JSON sur la liaison série.
 - [Raspberry_JSON][12] Retourne les informations de téléinformation au format JSON sur stdout.
-- [ESP8266_WifInfo][5] ESP8266 Wifi Teleinformation, Web + Rest + bonus, version en cours de développement, à venir.
+- [ESP8266_WifInfo][5] ESP8266 Wifi Teleinformation, Web + Rest + bonus, version en cours de développement, à venir mais un article [dédié][3] est déjà présent sur mon blog
 
 ##Pourquoi
 - J'utilise la téléinfo dans plusieurs de mes programmes et j'en avait marre de devoir faire des copier/coller de code constament, j'ai donc décidé de faire une librairie commune que j'utilise sans me poser de question
@@ -39,6 +39,7 @@ Vous pouvez aller voir les nouveautés et autres projets sur [blog][7]
 
 [1]: http://www.erdf.fr/sites/default/files/ERDF-NOI-CPT_02E.pdf
 [2]: http://learn.adafruit.com/arduino-tips-tricks-and-techniques/arduino-libraries
+[3]: https://hallard.me/wifiinfo/
 [6]: https://hallard.me/category/tinfo/
 [7]: https://hallard.me
 [8]: https://community.hallard.me/category/7
