@@ -17,6 +17,8 @@
 //
 // All text above must be included in any redistribution.
 //
+// Edit : Tab size set to 2 but I converted tab to sapces
+//
 // **********************************************************************************
 
 #include "LibTeleinfo.h" 
@@ -38,9 +40,9 @@ TInfo::TInfo()
 
   // callback
   _fn_ADPS = NULL;
-	_fn_data = NULL;   
-	_fn_new_frame = NULL;   
-	_fn_updated_frame = NULL;   
+  _fn_data = NULL;   
+  _fn_new_frame = NULL;   
+  _fn_updated_frame = NULL;   
 }
 
 /* ======================================================================
@@ -56,10 +58,10 @@ void TInfo::init()
   listDelete();
 
   // clear our receive buffer
-	clearBuffer();
+  clearBuffer();
 
-	// We're in INIT in term of receive data
-	_state = TINFO_INIT;
+  // We're in INIT in term of receive data
+  _state = TINFO_INIT;
 }
 
 /* ======================================================================
@@ -71,8 +73,8 @@ Comments: -
 ====================================================================== */
 void TInfo::attachADPS(void (*fn_ADPS)(uint8_t phase))
 {
-	// indicate the user callback
-	_fn_ADPS = fn_ADPS;   
+  // indicate the user callback
+  _fn_ADPS = fn_ADPS;   
 }
 
 /* ======================================================================
@@ -84,8 +86,8 @@ Comments: -
 ====================================================================== */
 void TInfo::attachData(void (*fn_data)(ValueList * valueslist, uint8_t  state))
 {
-	// indicate the user callback
-	_fn_data = fn_data;   
+  // indicate the user callback
+  _fn_data = fn_data;   
 }
 
 /* ======================================================================
@@ -97,22 +99,22 @@ Comments: -
 ====================================================================== */
 void TInfo::attachNewFrame(void (*fn_new_frame)(ValueList * valueslist))
 {
-	// indicate the user callback
-	_fn_new_frame = fn_new_frame;   
+  // indicate the user callback
+  _fn_new_frame = fn_new_frame;   
 }
 
 /* ======================================================================
 Function: attachChangedFrame 
 Purpose : attach a callback when we received a full frame where data
-					has changed since the last frame (cool to update data)
+          has changed since the last frame (cool to update data)
 Input   : callback function
 Output  : - 
 Comments: -
 ====================================================================== */
 void TInfo::attachUpdatedFrame(void (*fn_updated_frame)(ValueList * valueslist))
 {
-	// indicate the user callback
-	_fn_updated_frame = fn_updated_frame;   
+  // indicate the user callback
+  _fn_updated_frame = fn_updated_frame;   
 }
 
 /* ======================================================================
@@ -124,9 +126,9 @@ Comments: -
 ====================================================================== */
 uint8_t TInfo::clearBuffer()
 {
-	// Clear our buffer, set index to 0
+  // Clear our buffer, set index to 0
   memset(_recv_buff, 0, TINFO_BUFSIZE);
-	_recv_idx = 0;
+  _recv_idx = 0;
 }
 
 
@@ -142,8 +144,7 @@ Comments: checksum is calculated before adding, no need to bother with
 ValueList * TInfo::addCustomValue(char * name, char * value, uint8_t * flags)
 {
   // Little check
-  if (name && *name && value && *value) 
-  {
+  if (name && *name && value && *value) {
     ValueList * me;
 
     // Same as if we really received this line
@@ -176,11 +177,11 @@ Comments: - state of the label changed by the function
 ====================================================================== */
 ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t * flags)
 {
-	// Get our linked list 
-	ValueList * me = &_valueslist;
+  // Get our linked list 
+  ValueList * me = &_valueslist;
 
-	uint8_t lgname = strlen(name);
-	uint8_t lgvalue = strlen(value);
+  uint8_t lgname = strlen(name);
+  uint8_t lgvalue = strlen(value);
   uint8_t thischeck = calcChecksum(name,value);
   
   // just some paranoia 
@@ -246,12 +247,12 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
       // Our linked list structure sizeof(ValueList)
       // + Name  + '\0'
       // + Value + '\0'
-  		size_t size = sizeof(ValueList) + lgname + 1 + lgvalue + 1  ;
+      size_t size = sizeof(ValueList) + lgname + 1 + lgvalue + 1  ;
       // Create new node with size to store strings
       if ((newNode = (ValueList  *) malloc(size) ) == NULL) 
         return ( (ValueList *) NULL );
       else 
-      	// get our buffer Safe
+        // get our buffer Safe
         memset(newNode, 0, size);
       
       // Put the new node on the list
@@ -426,8 +427,8 @@ Output  : Pointer
 ====================================================================== */
 ValueList * TInfo::getList(void)
 {
-	// Get our linked list 
-	return &_valueslist;
+  // Get our linked list 
+  return &_valueslist;
 }
 
 /* ======================================================================
@@ -438,9 +439,9 @@ Output  : total number of values
 ====================================================================== */
 uint8_t TInfo::valuesDump(void)
 {
-	// Get our linked list 
-	ValueList * me = &_valueslist;
-	uint8_t index = 0;
+  // Get our linked list 
+  ValueList * me = &_valueslist;
+  uint8_t index = 0;
 
   // Got one ?
   if (me) {
@@ -454,16 +455,16 @@ uint8_t TInfo::valuesDump(void)
       TI_Debug(F(") ")) ;
 
       if (me->name)
-      	TI_Debug(me->name) ;
+        TI_Debug(me->name) ;
       else
-	      TI_Debug(F("NULL")) ;
+        TI_Debug(F("NULL")) ;
 
       TI_Debug(F("=")) ;
 
       if (me->value)
-      	TI_Debug(me->value) ;
+        TI_Debug(me->value) ;
       else
-	      TI_Debug(F("NULL")) ;
+        TI_Debug(F("NULL")) ;
 
       TI_Debug(F(" '")) ;
       TI_Debug(me->checksum) ;
@@ -498,8 +499,8 @@ int TInfo::labelCount()
 {
   int count = 0;
 
-	// Get our linked list 
-	ValueList * me = &_valueslist;
+  // Get our linked list 
+  ValueList * me = &_valueslist;
 
   if (me)
     while ((me = me->next))
@@ -516,8 +517,8 @@ Output  : True if Ok False Otherwise
 ====================================================================== */
 boolean TInfo::listDelete()
 {
-	// Get our linked list 
-	ValueList * me = &_valueslist;
+  // Get our linked list 
+  ValueList * me = &_valueslist;
 
   // Got a pointer
   if (me) {
@@ -546,7 +547,7 @@ boolean TInfo::listDelete()
 Function: checksum
 Purpose : calculate the checksum based on data/value fields
 Input   : label name 
-					label value 
+          label value 
 Output  : checksum
 Comments: return '\0' in case of error
 ====================================================================== */
@@ -557,16 +558,16 @@ unsigned char TInfo::calcChecksum(char *etiquette, char *valeur)
 
   // avoid dead loop, always check all is fine 
   if (etiquette && valeur) {
-  	// this will not hurt and may save our life ;-)
-  	if (strlen(etiquette) && strlen(valeur)) {
-		  while (*etiquette)
-		    sum += *etiquette++ ;
+    // this will not hurt and may save our life ;-)
+    if (strlen(etiquette) && strlen(valeur)) {
+      while (*etiquette)
+        sum += *etiquette++ ;
   
-		  while(*valeur)
-		    sum += *valeur++ ;
-		    
-		  return ( (sum & 63) + ' ' ) ;
-  	}
+      while(*valeur)
+        sum += *valeur++ ;
+        
+      return ( (sum & 63) + ' ' ) ;
+    }
   }
   return 0;
 }
@@ -593,10 +594,10 @@ void TInfo::customLabel( char * plabel, char * pvalue, uint8_t * pflags)
   //  *pflags |= TINFO_FLAGS_ALERT;
   //}
 
-	// triphasé c'est ADIR + Num Phase
-	if (plabel[0]=='A' && plabel[1]=='D' && plabel[2]=='I' && plabel[3]=='R' )
-		if (plabel[4]>='1' && plabel[4]<='3') 
-   	  phase = plabel[4]-'0';
+  // triphasé c'est ADIR + Num Phase
+  if (plabel[0]=='A' && plabel[1]=='D' && plabel[2]=='I' && plabel[3]=='R' && plabel[4]>='1' && plabel[4]<='3') {
+    phase = plabel[4]-'0';
+  }
 
   // Nous avons un ADPS ?
   if (phase>=0 && phase <=3) {
@@ -625,24 +626,24 @@ ValueList * TInfo::checkLine(char * pline)
   char   checksum;
   char  buff[TINFO_BUFSIZE];
   uint8_t flags  = TINFO_FLAGS_NONE;
-  boolean err = true ;	// Assume  error
+  boolean err = true ;  // Assume  error
   int len ; // Group len
 
   if (pline==NULL)
-  	return NULL;
+    return NULL;
 
   len = strlen(pline); 
 
   // a line should be at least 7 Char
   // 2 Label + Space + 1 etiquette + space + checksum + \r
   if ( len < 7 )
-  	return NULL;
+    return NULL;
 
   // Get our own working copy
   strncpy( buff, _recv_buff, len+1);
 
   p = &buff[0];
-  ptok = p; 			// for sure we start with token name
+  ptok = p;       // for sure we start with token name
   pend = p + len; // max size
 
   // Init values
@@ -665,7 +666,7 @@ ValueList * TInfo::checkLine(char * pline)
       if (!pvalue)
         pvalue = p;
       else
-	      // 2nd space, so it's the checksum
+        // 2nd space, so it's the checksum
         checksum = *p;
     }           
     // new line ? ok we got all we need ?
@@ -675,30 +676,30 @@ ValueList * TInfo::checkLine(char * pline)
 
       // Good format ?
       if ( ptok && pvalue && checksum ) {
-      	// Always check to avoid bad behavior 
-      	if(strlen(ptok) && strlen(pvalue)) {
-	        // Is checksum is OK
-	        if ( calcChecksum(ptok,pvalue) == checksum) {
-	          // In case we need to do things on specific labels
-	          customLabel(ptok, pvalue, &flags);
+        // Always check to avoid bad behavior 
+        if(strlen(ptok) && strlen(pvalue)) {
+          // Is checksum is OK
+          if ( calcChecksum(ptok,pvalue) == checksum) {
+            // In case we need to do things on specific labels
+            customLabel(ptok, pvalue, &flags);
 
-	          // Add value to linked lists of values
-	          ValueList * me = valueAdd(ptok, pvalue, checksum, &flags);
+            // Add value to linked lists of values
+            ValueList * me = valueAdd(ptok, pvalue, checksum, &flags);
 
-	          // value correctly added/changed
-	          if ( me ) {
-				      // something to do with new datas
-			        if (flags & (TINFO_FLAGS_UPDATED | TINFO_FLAGS_ADDED | TINFO_FLAGS_ALERT) ) {
-			        	// this frame will for sure be updated
-			        	_frame_updated = true;
+            // value correctly added/changed
+            if ( me ) {
+              // something to do with new datas
+              if (flags & (TINFO_FLAGS_UPDATED | TINFO_FLAGS_ADDED | TINFO_FLAGS_ALERT) ) {
+                // this frame will for sure be updated
+                _frame_updated = true;
 
-			        	// Do we need to advertise user callback
-			        	if (_fn_data)
-			        		_fn_data(me, flags);
-			        }
-	          }
-	        }
-      	}
+                // Do we need to advertise user callback
+                if (_fn_data)
+                  _fn_data(me, flags);
+              }
+            }
+          }
+        }
       }
     }           
     // Next char
@@ -721,37 +722,37 @@ _State_e TInfo::process(char c)
    // be sure 7 bits only
    c &= 0x7F;
 
-	// What we received ?
-	switch (c) 	{
-	  // start of transmission ???
-	  case  TINFO_STX:
-	    // Clear buffer, begin to store in it
-	  	clearBuffer();
+  // What we received ?
+  switch (c)  {
+    // start of transmission ???
+    case  TINFO_STX:
+      // Clear buffer, begin to store in it
+      clearBuffer();
 
-	  	// by default frame is not "updated"
-	  	// if data change we'll set this flag
-     	_frame_updated = false;
+      // by default frame is not "updated"
+      // if data change we'll set this flag
+      _frame_updated = false;
 
-	  	// We were waiting fo this one ?
-	  	if (_state == TINFO_INIT || _state == TINFO_WAIT_STX ) {
-	        TI_Debugln(F("TINFO_WAIT_ETX"));
-	  		 _state = TINFO_WAIT_ETX;
-	  	}	
-	  break;
-	    
-	  // End of transmission ?
-	  case  TINFO_ETX:
+      // We were waiting fo this one ?
+      if (_state == TINFO_INIT || _state == TINFO_WAIT_STX ) {
+          TI_Debugln(F("TINFO_WAIT_ETX"));
+         _state = TINFO_WAIT_ETX;
+      } 
+    break;
+      
+    // End of transmission ?
+    case  TINFO_ETX:
 
-	  	// Normal working mode ?
-	  	if (_state == TINFO_READY) {
-	  		// Get on top of our linked list 
-				ValueList * me = &_valueslist;
-				
+      // Normal working mode ?
+      if (_state == TINFO_READY) {
+        // Get on top of our linked list 
+        ValueList * me = &_valueslist;
+        
         // Call user callback if any
-		  	if (_frame_updated && _fn_updated_frame)
-		  		_fn_updated_frame(me);
-		  	else if (_fn_new_frame)
-	  			_fn_new_frame(me);
+        if (_frame_updated && _fn_updated_frame)
+          _fn_updated_frame(me);
+        else if (_fn_new_frame)
+          _fn_new_frame(me);
 
         #ifdef TI_Debug
           valuesDump();
@@ -761,59 +762,59 @@ _State_e TInfo::process(char c)
         // to remove the alert flags from table (ADPS for example)
         // it will be put back again next time if any
         valueRemoveFlagged(TINFO_FLAGS_ALERT);
-	  	}
+      }
 
-	  	// We were waiting fo this one ?
-	  	if (_state == TINFO_WAIT_ETX) {
-	    	TI_Debugln(F("TINFO_READY"));
-	  		_state = TINFO_READY;
-	  	}	
-	  	else if ( _state == TINFO_INIT) {
-	      TI_Debugln(F("TINFO_WAIT_STX"));
-	  		_state = TINFO_WAIT_STX	;
-	  	} 
+      // We were waiting fo this one ?
+      if (_state == TINFO_WAIT_ETX) {
+        TI_Debugln(F("TINFO_READY"));
+        _state = TINFO_READY;
+      } 
+      else if ( _state == TINFO_INIT) {
+        TI_Debugln(F("TINFO_WAIT_STX"));
+        _state = TINFO_WAIT_STX ;
+      } 
 
-	  break;
+    break;
 
-	  // Start of group \n ?
-	  case  TINFO_SGR:
-	    // Do nothing we'll work at end of group
-	  	// we can safely ignore this char
-	  break;
+    // Start of group \n ?
+    case  TINFO_SGR:
+      // Do nothing we'll work at end of group
+      // we can safely ignore this char
+    break;
 
-	  // End of group \r ?
-	  case  TINFO_EGR:
-	    // Are we ready to process ?
-	    if (_state == TINFO_READY) {
+    // End of group \r ?
+    case  TINFO_EGR:
+      // Are we ready to process ?
+      if (_state == TINFO_READY) {
         // Store data recceived (we'll need it)
-	      if ( _recv_idx < TINFO_BUFSIZE)
-	        _recv_buff[_recv_idx++]=c;
+        if ( _recv_idx < TINFO_BUFSIZE)
+          _recv_buff[_recv_idx++]=c;
 
-	      // clear the end of buffer (paranoia inside)
+        // clear the end of buffer (paranoia inside)
         memset(&_recv_buff[_recv_idx], 0, TINFO_BUFSIZE-_recv_idx);
 
         // check the group we've just received
-	      checkLine(_recv_buff) ;
+        checkLine(_recv_buff) ;
 
-	      // Whatever error or not, we done
-	      clearBuffer();
-	    }
-	  break;
-	  
-	  // other char ?
-	  default:
-	  {
-	  	// Only in a ready state of course
-	    if (_state == TINFO_READY) {
-	      // If buffer is not full, Store data 
-	      if ( _recv_idx < TINFO_BUFSIZE)
-	        _recv_buff[_recv_idx++]=c;
-	      else
-	        clearBuffer();
-		  }
-	  }
-	  break;
-	}
+        // Whatever error or not, we done
+        clearBuffer();
+      }
+    break;
+    
+    // other char ?
+    default:
+    {
+      // Only in a ready state of course
+      if (_state == TINFO_READY) {
+        // If buffer is not full, Store data 
+        if ( _recv_idx < TINFO_BUFSIZE)
+          _recv_buff[_recv_idx++]=c;
+        else
+          clearBuffer();
+      }
+    }
+    break;
+  }
 }
 
 

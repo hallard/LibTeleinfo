@@ -17,6 +17,8 @@
 //
 // All text above must be included in any redistribution.
 //
+// Edit : Tab size set to 2 but I converted tab to sapces
+//
 // **********************************************************************************
 
 #ifndef LibTeleinfo_h
