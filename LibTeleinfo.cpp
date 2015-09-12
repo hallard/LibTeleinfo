@@ -593,10 +593,10 @@ void TInfo::customLabel( char * plabel, char * pvalue, uint8_t * pflags)
   //  *pflags |= TINFO_FLAGS_ALERT;
   //}
 
-	// triphasé c'est ADIR + Num Phase
-	if (plabel[0]=='A' && plabel[1]=='D' && plabel[2]=='I' && plabel[3]=='R' )
-		if (plabel[4]>='1' && plabel[4]<='3') 
-   	  phase = plabel[4]-'0';
+  // triphasé c'est ADIR + Num Phase
+  if (plabel[0]=='A' && plabel[1]=='D' && plabel[2]=='I' && plabel[3]=='R' )
+    if (plabel[4]>='1' && plabel[4]<='3') 
+      phase = plabel[4]-'0';
 
   // Nous avons un ADPS ?
   if (phase>=0 && phase <=3) {
