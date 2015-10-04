@@ -6,7 +6,7 @@
 // Attribution-NonCommercial-ShareAlike 4.0 International License
 // http://creativecommons.org/licenses/by-nc-sa/4.0/
 //
-// For any explanation about teleinfo ou use , see my blog
+// For any explanation about teleinfo ou use, see my blog
 // http://hallard.me/category/tinfo
 //
 // This program works with the Wifinfo board

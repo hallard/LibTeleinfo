@@ -40,7 +40,7 @@
 ADC_MODE(ADC_VCC);
 
 //WiFiManager wifi(0);
-ESP8266WebServer server ( 80 );
+ESP8266WebServer server(80);
 // Udp listener and telnet server
 WiFiUDP OTA;
 // Teleinfo
@@ -88,7 +88,7 @@ void UpdateSysinfo(boolean first_call, boolean show_debug)
   
   // Values not subject to change during running sketch
   if (first_call) {
-    sprintf( buff, "%d KB", ESP.getFlashChipSize()/1024 );
+    sprintf( buff, "%d KB", ESP.getFlashChipRealSize()/1024 );
     sysinfo.sys_flash_size = buff;
     sprintf( buff, "%d KB", ESP.getSketchSize()/1024 );
     sysinfo.sys_firmware_size = buff;
@@ -98,9 +98,9 @@ void UpdateSysinfo(boolean first_call, boolean show_debug)
     sysinfo.sys_flash_speed = buff;
   }
 
-  if (show_debug)
-  {
+  if (show_debug) {
     Debug(F("Firmware     : ")); Debugln(__DATE__ " " __TIME__);
+    Debug(F("Flash real id: ")); Serial1.printf("0x%08X\r\n", ESP.getFlashChipId());
     Debug(F("Flash Size   : ")); Debugln(sysinfo.sys_flash_size);  
     Debug(F("CPU Speed    : ")); Debugln(sysinfo.sys_flash_speed); 
     Debug(F("Sketch size  : ")); Debugln(sysinfo.sys_firmware_size);     
@@ -267,68 +267,52 @@ void CheckOTAUpdate(void)
     int port = OTA.parseInt();
     int size = OTA.parseInt();
 
-    Debug(F("Update Start: ip:"));
+    LedRGBON(COLOR_MAGENTA);
+
+    DebugF("Update Start: ip:");
     Debug(remote);
-    Debugf(", port:%d, size:%d\n", port, size);
+    Debugf(", port:%d, size:%dKB\n", port, size/1024);
     uint32_t startTime = millis();
 
     WiFiUDP::stopAll();
 
-    for (uint8_t i=0; i<=10;i++) {
-      LedRGBOFF();
-      delay(75);
-      LedRGBON(COLOR_MAGENTA);
-      delay(25);
-    }
-
-    int ww = 0;
-    WiFiClient client;
-    
-    if (!client.connect(remote, port)){
-      Debugf("Connect Failed: %u\n", millis() - startTime);
+    if(!Update.begin(size)) {
+      DebugF("Update Begin Error");
       return;
-    } 
+    }
 
-    client.setTimeout(10000);
-    int cntr = 0;
-    int z = 0;
-    uint16_t crc;
+    WiFiClient ota_client;
 
-    // do until we do not get transfered full size
-    while (cntr<size) { 
-      z = 0;
-      crc = 0;
-      for(int i=client.available();i>0;i--) { 
-        int b = client.read();
+    if (ota_client.connect(remote, port)) {
 
-        // timeout
-        if (b == -1) 
-          break; 
-
-        crc += (byte)b;
-        z++;
-        cntr++;
+      uint32_t written;
+      while(!Update.isFinished()) {
+        written = Update.write(ota_client);
+        if(written > 0) 
+        {
+          LedRGBOFF();
+          ota_client.print(written, DEC);
+          LedRGBON(COLOR_MAGENTA);
+        }
       }
+      LedRGBOFF();
+      Serial.setDebugOutput(false);
 
-      // Printback code differ from original espota.py
-      if (z) 
-        client.printf(PSTR("%d %d\n"), z, crc); 
-    }
-    Debugf("Done %d/%d\r\n", cntr, size);
-
-    // All transfered ?
-    if(cntr>=size) {
-      client.print("OK");
-      Debugf("Update Success in %u ms\r\nRebooting...\r\n", millis() - startTime);
-      ESP.restart();
+      if(Update.end()) {
+        ota_client.println("OK");
+        Debugf("Update Success: %u\nRebooting...\n", millis() - startTime);
+        ESP.restart();
+      } else {
+        Update.printError(ota_client);
+        Update.printError(Serial);
+      }
     } else {
-      Update.printError(client);
-      Update.printError(Serial1);
+      Debugf("Connect Failed: %u\n", millis() - startTime);
     }
+ 
+    // Be sure to re enable it
+    OTA.begin(DEFAULT_OTA_PORT);
   }
-
-  // Be sure to re enable it
-  OTA.begin(config.ota_port);
 }
 
 /* ======================================================================
@@ -344,37 +328,40 @@ int WifiHandleConn()
 
   // Wait for connection if disconnected
   if ( ret != WL_CONNECTED ) {
-    // Yellow we're not connected anymore
-    LedRGBON(COLOR_YELLOW);
 
-    Debug(F("Connecting to: ")); 
-    Debug( config.ssid );
+    // Orange we're not connected anymore
+    LedRGBON(COLOR_ORANGE);
+
+    DebugF("Connecting to: "); 
+    Debug(DEFAULT_WIFI_SSID);
     Debug(F("..."));
 
-    WiFi.begin(config.ssid, config.pass);
+    WiFi.begin(DEFAULT_WIFI_SSID, DEFAULT_WIFI_PASS);
 
     ret = WiFi.waitForConnectResult();
     if ( ret != WL_CONNECTED) {
-      Debugln(F("Connection failed!"));
+      LedRGBON(COLOR_RED);
+      DebuglnF("Connection failed!");
     } else {
-      Debugln(F("Connected"));
-      Debug(F("IP address   : ")); Debugln(WiFi.localIP());
-      Debug(F("MAC address  : ")); Debugln(WiFi.macAddress());
+      LedRGBON(COLOR_GREEN);
+      DebuglnF("Connected");
+      DebugF("IP address   : "); Debugln(WiFi.localIP());
+      DebugF("MAC address  : "); Debugln(WiFi.macAddress());
 
-      MDNS.begin(config.host);
-      MDNS.addService("arduino", "tcp", config.ota_port);
-      OTA.begin(config.ota_port);
+      MDNS.begin(DEFAULT_HOSTNAME);
+      MDNS.addService("arduino", "tcp", DEFAULT_OTA_PORT);
+      OTA.begin(DEFAULT_OTA_PORT);
 
       // just in case your sketch sucks, keep update OTA Available
       // Trust me, when coding and testing it happens, this could save
       // the need to connect FTDI to reflash
       // Usefull just after 1st connexion when called from setup() before
       // launching potentially bugging main()
-      for (uint8_t i=0; i<= 20; i++) {
-        LedRGBON(COLOR_GREEN);
-        delay(25);
+      for (uint8_t i=0; i<= 10; i++) {
+        LedRGBON(COLOR_MAGENTA);
+        delay(100);
         LedRGBOFF();
-        delay(75);
+        delay(200);
         CheckOTAUpdate();
       }
     }
@@ -396,10 +383,16 @@ Comments: -
 ====================================================================== */
 void setup()
 {
+  boolean reset_config = true;
+
   // Set WiFi to station mode and disconnect from an AP if it was previously connected
   //WiFi.mode(WIFI_STA);
   //WiFi.disconnect();
   //delay(100);
+
+  // Init the RGB Led, and set it off
+  rgb_led.Begin();
+  LedRGBOFF();
 
   // Init the serial 1
   // Teleinfo is connected to RXD2 (GPIO13) to 
@@ -427,8 +420,16 @@ void setup()
 
   // Read Configuration from EEP
   if (readConfig()) {
-    sysinfo.sys_eep_config = PSTR("good CRC, config OK");
-  } else {
+    // in case of saved default config it's not good
+    if (config.ssid[0]!='*' && config.pass[0]!='*' ) {
+      sysinfo.sys_eep_config = PSTR("Good CRC, config OK");
+      reset_config = false;
+    } else {
+      sysinfo.sys_eep_config = PSTR("Good CRC, not set!");
+    }
+  } 
+
+  if (reset_config ) {
     // Error, enable default configuration
     strcpy_P(config.ssid, PSTR(DEFAULT_WIFI_SSID));
     strcpy_P(config.pass, PSTR(DEFAULT_WIFI_PASS));
@@ -437,7 +438,7 @@ void setup()
 
     // Indicate the error in global flags
     config.config |= CFG_BAD_CRC;
-    sysinfo.sys_eep_config = PSTR("Bad CRC, reset to default");
+    sysinfo.sys_eep_config = PSTR("Reset to default");
 
     // save back
     saveConfig();
@@ -454,9 +455,6 @@ void setup()
   tinfo.attachData(DataCallback);
   tinfo.attachNewFrame(NewFrame);
   tinfo.attachUpdatedFrame(UpdatedFrame);
-
-  // Init the RGB Led
-  rgb_led.Begin();
 
   // We'll drive the on board LED (TXD1) and our on GPIO1
   // old TXD1, not used anymore, has been swapped

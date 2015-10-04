@@ -47,11 +47,15 @@
 #ifdef DEBUG
 #define Debug(x)    Serial1.print(x)
 #define Debugln(x)  Serial1.println(x)
+#define DebugF(x)   Serial1.print(F(x))
+#define DebuglnF(x) Serial1.println(F(x))
 #define Debugf(...) Serial1.printf(__VA_ARGS__)
 #define Debugflush  Serial1.flush
 #else
 #define Debug(x)    {}
 #define Debugln(x)  {}
+#define DebugF(x)   {}
+#define DebuglnF(x) {}
 #define Debugf(...) {}
 #define Debugflush  {}
 #endif
@@ -62,6 +66,7 @@
 #define RED_LED_PIN    12
 // value for RGB color
 #define COLOR_RED     rgb_brightness, 0, 0
+#define COLOR_ORANGE  rgb_brightness, rgb_brightness>>1, 0
 #define COLOR_YELLOW  rgb_brightness, rgb_brightness, 0
 #define COLOR_GREEN   0, rgb_brightness, 0
 #define COLOR_CYAN    0, rgb_brightness, rgb_brightness
