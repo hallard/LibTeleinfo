@@ -89,7 +89,7 @@ typedef struct
 {
   String sys_uptime;
   String sys_free_ram;
-  String sys_flash_size;
+  String sys_flash_real_size;
   String sys_flash_speed;
   String sys_firmware_size;
   String sys_firmware_free;

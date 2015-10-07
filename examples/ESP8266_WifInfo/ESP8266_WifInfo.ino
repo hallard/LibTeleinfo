@@ -89,7 +89,7 @@ void UpdateSysinfo(boolean first_call, boolean show_debug)
   // Values not subject to change during running sketch
   if (first_call) {
     sprintf( buff, "%d KB", ESP.getFlashChipRealSize()/1024 );
-    sysinfo.sys_flash_size = buff;
+    sysinfo.sys_flash_real_size = buff;
     sprintf( buff, "%d KB", ESP.getSketchSize()/1024 );
     sysinfo.sys_firmware_size = buff;
     sprintf( buff, "%d KB", ESP.getFreeSketchSpace()/1024 );
@@ -101,7 +101,7 @@ void UpdateSysinfo(boolean first_call, boolean show_debug)
   if (show_debug) {
     Debug(F("Firmware     : ")); Debugln(__DATE__ " " __TIME__);
     Debug(F("Flash real id: ")); Serial1.printf("0x%08X\r\n", ESP.getFlashChipId());
-    Debug(F("Flash Size   : ")); Debugln(sysinfo.sys_flash_size);  
+    Debug(F("Flash RSize  : ")); Debugln(sysinfo.sys_flash_real_size);  
     Debug(F("CPU Speed    : ")); Debugln(sysinfo.sys_flash_speed); 
     Debug(F("Sketch size  : ")); Debugln(sysinfo.sys_firmware_size);     
     Debug(F("Free size    : ")); Debugln(sysinfo.sys_firmware_free);
@@ -260,6 +260,8 @@ Comments: If upgraded, no return, perform update and reboot ESP
 ====================================================================== */
 void CheckOTAUpdate(void)
 {
+  bool spiffs = false;
+
   //OTA detection
   if (OTA.parsePacket()) {
     IPAddress remote = OTA.remoteIP();
@@ -269,6 +271,14 @@ void CheckOTAUpdate(void)
 
     LedRGBON(COLOR_MAGENTA);
 
+    DebugF("OTA received command ");
+    Debugln(cmd);
+    if (cmd == U_SPIFFS) {
+      spiffs = true;
+      DebugF("Get SPIFFS image");
+    }
+
+
     DebugF("Update Start: ip:");
     Debug(remote);
     Debugf(", port:%d, size:%dKB\n", port, size/1024);
@@ -276,7 +286,7 @@ void CheckOTAUpdate(void)
 
     WiFiUDP::stopAll();
 
-    if(!Update.begin(size)) {
+    if(!Update.begin(size, cmd)) {
       DebugF("Update Begin Error");
       return;
     }
@@ -316,60 +326,109 @@ void CheckOTAUpdate(void)
 }
 
 /* ======================================================================
-Function: WifiHandleConn
-Purpose : Handle Wifi connection / reconnection and OTA updates
+Function: WifiSoftAP
+Purpose : Change Wifi mode to Soft AP
 Input   : -
 Output  : state of the wifi status
 Comments: -
 ====================================================================== */
-int WifiHandleConn() 
+int WifiSoftAP() 
 {
-  int ret = WiFi.status();
+}
 
-  // Wait for connection if disconnected
-  if ( ret != WL_CONNECTED ) {
+/* ======================================================================
+Function: WifiHandleConn
+Purpose : Handle Wifi connection / reconnection and OTA updates
+Input   : setup true if we're called 1st Time from setup
+Output  : state of the wifi status
+Comments: -
+====================================================================== */
+int WifiHandleConn(boolean setup = false) 
+{
+  int ret ;
 
-    // Orange we're not connected anymore
-    LedRGBON(COLOR_ORANGE);
+  if (setup)
+  {
+    // Check WiFi connection mode, at startup
+    // try to connect to AP
+    if (WiFi.getMode()!=WIFI_STA) {
+      WiFi.mode(WIFI_STA);
+      delay(10);
+    }
 
-    DebugF("Connecting to: "); 
-    Debug(DEFAULT_WIFI_SSID);
-    Debug(F("..."));
+    // Get Wifi Status
+    ret = WiFi.status();
 
-    WiFi.begin(DEFAULT_WIFI_SSID, DEFAULT_WIFI_PASS);
+    // Try to get 1st connexion
+    if ( ret != WL_CONNECTED ) {
 
-    ret = WiFi.waitForConnectResult();
-    if ( ret != WL_CONNECTED) {
-      LedRGBON(COLOR_RED);
-      DebuglnF("Connection failed!");
-    } else {
-      LedRGBON(COLOR_GREEN);
-      DebuglnF("Connected");
-      DebugF("IP address   : "); Debugln(WiFi.localIP());
-      DebugF("MAC address  : "); Debugln(WiFi.macAddress());
+      // Orange we're not connected anymore
+      LedRGBON(COLOR_ORANGE);
 
-      MDNS.begin(DEFAULT_HOSTNAME);
-      MDNS.addService("arduino", "tcp", DEFAULT_OTA_PORT);
-      OTA.begin(DEFAULT_OTA_PORT);
+      DebugF("Connecting to: "); 
+      Debug(DEFAULT_WIFI_SSID);
+      Debug(F("..."));
 
-      // just in case your sketch sucks, keep update OTA Available
-      // Trust me, when coding and testing it happens, this could save
-      // the need to connect FTDI to reflash
-      // Usefull just after 1st connexion when called from setup() before
-      // launching potentially bugging main()
-      for (uint8_t i=0; i<= 10; i++) {
-        LedRGBON(COLOR_MAGENTA);
-        delay(100);
-        LedRGBOFF();
-        delay(200);
-        CheckOTAUpdate();
+      WiFi.begin(DEFAULT_WIFI_SSID, DEFAULT_WIFI_PASS);
+
+      ret = WiFi.waitForConnectResult();
+      if ( ret != WL_CONNECTED) {
+        LedRGBON(COLOR_RED);
+        DebuglnF("Connection failed!");
+      } else {
+        LedRGBON(COLOR_GREEN);
+        DebuglnF("Connected");
+        DebugF("IP address   : "); Debugln(WiFi.localIP());
+        DebugF("MAC address  : "); Debugln(WiFi.macAddress());
+
+        // just in case your sketch sucks, keep update OTA Available
+        // Trust me, when coding and testing it happens, this could save
+        // the need to connect FTDI to reflash
+        // Usefull just after 1st connexion when called from setup() before
+        // launching potentially bugging main()
+        for (uint8_t i=0; i<= 10; i++) {
+          LedRGBON(COLOR_MAGENTA);
+          delay(100);
+          LedRGBOFF();
+          delay(200);
+          CheckOTAUpdate();
+        }
       }
     }
+
+    // We did not succeded to connect ?
+    if ( ret != WL_CONNECTED ) {
+      uint8_t mac[WL_MAC_ADDR_LENGTH];
+      char ssid[32];
+
+      // start Soft AP
+      DebuglnF("Starting Soft AP mode");
+      WiFi.mode(WIFI_AP);
+
+      // Add the last two bytes of the MAC address to AP name
+      WiFi.softAPmacAddress(mac);
+      sprintf_P(ssid, PSTR("%s_%02X%02X"), DEFAULT_WIFI_AP_SSID, mac[4], mac[5] );
+
+      DebugF("SSID : "); Debugln(ssid);
+      //WiFi.softAP(ssid, DEFAULT_WIFI_AP_PSK);
+      //DebuglnF("PSK  : " DEFAULT_WIFI_AP_PSK);
+      // No password
+      WiFi.softAP(ssid);
+      DebugF("IP   : ");
+      Debugln(WiFi.softAPIP());
+    }
+
+    // Advertise US for Arduino IDE
+    // not very usefull on Windows (IDE does not always sees us)
+    MDNS.begin(DEFAULT_HOSTNAME);
+    MDNS.addService("arduino", "tcp", DEFAULT_OTA_PORT);
+
+    // Setup OTA feature
+    OTA.begin(DEFAULT_OTA_PORT);
   }
 
-  // Handle OTA if we're connected
-  if ( ret == WL_CONNECTED ) 
-    CheckOTAUpdate();
+  // Handle OTA 
+  CheckOTAUpdate();
 
   return ret;
 }
@@ -407,8 +466,8 @@ void setup()
   // enough for debugging purpose
   Serial1.begin(115200);
 
-  Debugln(F("============"));
-  Debugln(F("Wifinfo V1.0"));
+  Debugln(F("=============="));
+  Debugln(F("Wifinfo V1.0.1"));
   Debugln();
   Debugflush();
 
@@ -463,8 +522,8 @@ void setup()
   LedRedOFF();
   LedBluOFF();
 
-  // connect 
-  WifiHandleConn();
+  // start Wifi connect or soft AP
+  WifiHandleConn(true);
 
   // Update sysinfor variable and print them
   UpdateSysinfo(true, true);
@@ -485,9 +544,9 @@ void setup()
   LedRGBOFF();
 
   // control watchdog
-  ESP.wdtEnable(WDTO_4S);
+  //ESP.wdtEnable();
   //ESP.wdtDisable()
-  ESP.wdtFeed(); 
+  //ESP.wdtFeed(); 
 
   // Update sysinfo every second
   Every_1_Sec.attach(1, Task_1_Sec);
@@ -502,16 +561,12 @@ Comments: -
 ====================================================================== */
 void loop()
 {
-  static char c;
+  char c;
 
-  // Handle connection/disconnection/OTA update
-  if ( WifiHandleConn() == WL_CONNECTED ) {
+  // Do all related network stuff
+  server.handleClient();
 
-    // Do all related network stuff
-    server.handleClient();
-
-    //webSocket.loop();
-  }
+  //webSocket.loop();
 
   // 1 second task job ?
   if (task_1_sec)  {

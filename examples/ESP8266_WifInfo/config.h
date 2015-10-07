@@ -34,6 +34,12 @@
 #define DEFAULT_WIFI_SSID   "************"
 #define DEFAULT_WIFI_PASS   "************"
 #define DEFAULT_HOSTNAME    "WifInfo-esp01"
+
+// En mode acces point 
+#define DEFAULT_WIFI_AP_SSID  "WifInfo"
+#define DEFAULT_WIFI_AP_PSK   "WifInfoPSK"
+
+// Port pour l'OTA
 #define DEFAULT_OTA_PORT     8266
 
 // Bit definition for different configuration modes
