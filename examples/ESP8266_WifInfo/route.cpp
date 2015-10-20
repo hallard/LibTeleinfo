@@ -402,8 +402,8 @@ void sysJSONTable()
   response += sysinfo.sys_free_ram;
   response += "\"},\r\n";
 
-  response += "{\"na\":\"Flash Size\",\"va\":\"";
-  response += sysinfo.sys_flash_size ;
+  response += "{\"na\":\"Flash Real Size\",\"va\":\"";
+  response += sysinfo.sys_flash_real_size ;
   response += "\"},\r\n";
 
   response += "{\"na\":\"Firmware Size\",\"va\":\"";
@@ -424,6 +424,10 @@ void sysJSONTable()
 
   response += "{\"na\":\"Wifi RSSI\",\"va\":\"";
   response += WiFi.RSSI() ;
+  response += " dB\"}\r\n";
+
+  response += "{\"na\":\"Analog\",\"va\":\"";
+  response += sysinfo.sys_analog;
   response += " dB\"}\r\n";
 
   // Json end
