@@ -62,7 +62,6 @@
 
 #define BLINK_LED_MS   50 // 50 ms blink
 #define RGB_LED_PIN    14 
-#define BLU_LED_PIN     1
 #define RED_LED_PIN    12
 // value for RGB color
 #define COLOR_RED     rgb_brightness, 0, 0
@@ -74,8 +73,13 @@
 #define COLOR_MAGENTA rgb_brightness, 0, rgb_brightness
 
 // GPIO 1 TX on board blue led
+#ifdef BLU_LED_PIN
 #define LedBluON()  {digitalWrite(BLU_LED_PIN, 0);}
 #define LedBluOFF() {digitalWrite(BLU_LED_PIN, 1);}
+#else
+#define LedBluON()  {}
+#define LedBluOFF() {}
+#endif
 // GPIO 12 red led
 #define LedRedON()  {digitalWrite(RED_LED_PIN, 1);}
 #define LedRedOFF() {digitalWrite(RED_LED_PIN, 0);}
@@ -93,7 +97,7 @@ typedef struct
   String sys_flash_speed;
   String sys_firmware_size;
   String sys_firmware_free;
-  String sys_vcc;
+  String sys_analog;
   String sys_eep_config;
 } _sysinfo;
 

@@ -35,10 +35,6 @@
 // Global project file
 #include "ESP8266_WifInfo.h"
 
-
-// To be able to read VCC from ESP SDK
-ADC_MODE(ADC_VCC);
-
 //WiFiManager wifi(0);
 ESP8266WebServer server(80);
 // Udp listener and telnet server
@@ -73,6 +69,7 @@ Comments: -
 void UpdateSysinfo(boolean first_call, boolean show_debug)
 {
   char buff[64];
+  int32_t adc;
   int sec = seconds;
   int min = sec / 60;
   int hr = min / 60;
@@ -83,8 +80,9 @@ void UpdateSysinfo(boolean first_call, boolean show_debug)
   sprintf( buff, "%d KB", ESP.getFreeHeap()/1024 );
   sysinfo.sys_free_ram = buff;
 
-  sprintf( buff, "%d mV", ESP.getVcc());
-  sysinfo.sys_vcc = buff;
+  adc = ( (1000 * analogRead(A0)) / 1024);
+  sprintf( buff, "%d mV", adc);
+  sysinfo.sys_analog = buff;
   
   // Values not subject to change during running sketch
   if (first_call) {
@@ -107,7 +105,7 @@ void UpdateSysinfo(boolean first_call, boolean show_debug)
     Debug(F("Free size    : ")); Debugln(sysinfo.sys_firmware_free);
     Debug(F("Free RAM     : ")); Debugln(sysinfo.sys_free_ram);       
     Debug(F("OTA port     : ")); Debugln(config.ota_port);          
-    Debug(F("VCC          : ")); Debugln(sysinfo.sys_vcc);          
+    Debug(F("Analog Read  : ")); Debugln(sysinfo.sys_analog);          
     Debug(F("Saved Config : ")); Debugln(sysinfo.sys_eep_config);          
   }
 }
@@ -134,8 +132,10 @@ Comments: -
 ====================================================================== */
 void LedOff(int led)
 {
+  #ifdef BLU_LED_PIN
   if (led==BLU_LED_PIN)
     LedBluOFF();
+  #endif
   if (led==RED_LED_PIN)
     LedRedOFF();
   if (led==RGB_LED_PIN)
@@ -515,12 +515,10 @@ void setup()
   tinfo.attachNewFrame(NewFrame);
   tinfo.attachUpdatedFrame(UpdatedFrame);
 
-  // We'll drive the on board LED (TXD1) and our on GPIO1
+  // We'll drive our onboard LED
   // old TXD1, not used anymore, has been swapped
-  pinMode(BLU_LED_PIN, OUTPUT); 
   pinMode(RED_LED_PIN, OUTPUT); 
   LedRedOFF();
-  LedBluOFF();
 
   // start Wifi connect or soft AP
   WifiHandleConn(true);
@@ -581,5 +579,7 @@ void loop()
     //Serial1.print(c);
     tinfo.process(c);
   }
+
+  delay(10);
 }
 
