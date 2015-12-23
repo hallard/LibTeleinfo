@@ -26,6 +26,7 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+#include <ESP8266HTTPClient.h>
 #include <ESP8266mDNS.h>
 #include <WiFiUDP.h>
 #include <EEPROM.h>
@@ -34,23 +35,33 @@
 //#include <Hash.h>
 #include <NeoPixelBus.h>
 #include <LibTeleinfo.h>
+#include <fs.h>
 
-#include "route.h"
+extern "C" {
+#include "user_interface.h"
+}
+
+#include "webserver.h"
+#include "webclient.h"
 #include "config.h"
 
 
 #define DEBUG
+#define DEBUG_SERIAL	Serial1
+#define DEBUG_SERIAL1	
+
+#define WIFINFO_VERSION "1.0.0"
 
 // I prefix debug macro to be sure to use specific for THIS library
 // debugging, this should not interfere with main sketch or other 
 // libraries
 #ifdef DEBUG
-#define Debug(x)    Serial1.print(x)
-#define Debugln(x)  Serial1.println(x)
-#define DebugF(x)   Serial1.print(F(x))
-#define DebuglnF(x) Serial1.println(F(x))
-#define Debugf(...) Serial1.printf(__VA_ARGS__)
-#define Debugflush  Serial1.flush
+#define Debug(x)    DEBUG_SERIAL.print(x)
+#define Debugln(x)  DEBUG_SERIAL.println(x)
+#define DebugF(x)   DEBUG_SERIAL.print(F(x))
+#define DebuglnF(x) DEBUG_SERIAL.println(F(x))
+#define Debugf(...) DEBUG_SERIAL.printf(__VA_ARGS__)
+#define Debugflush  DEBUG_SERIAL.flush
 #else
 #define Debug(x)    {}
 #define Debugln(x)  {}
@@ -92,13 +103,6 @@
 typedef struct 
 {
   String sys_uptime;
-  String sys_free_ram;
-  String sys_flash_real_size;
-  String sys_flash_speed;
-  String sys_firmware_size;
-  String sys_firmware_free;
-  String sys_analog;
-  String sys_eep_config;
 } _sysinfo;
 
 // Exported variables/object instancied in main sketch
@@ -110,7 +114,15 @@ extern NeoPixelBus rgb_led ;
 extern uint8_t rgb_brightness;
 extern unsigned long seconds;
 extern _sysinfo sysinfo;
+extern Ticker Tick_emoncms;
+extern Ticker Tick_jeedom;
 
+
+// Exported function located in main sketch
+// ===================================================
+void ResetConfig(void);
+void Task_emoncms();
+void Task_jeedom();
 
 #endif
 

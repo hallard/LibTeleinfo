@@ -58,11 +58,10 @@ void eepromDump(uint8_t bytesPerRow)
   Debugln();
     
   // loop thru EEP address
-  for (i = 0; i <= sizeof(_Config); i++) {
+  for (i = 0; i < sizeof(_Config); i++) {
     // First byte of the row ?
     if (j==0) {
 			// Display Address
-      Debug(buf);
       Debugf("%04X : ", i);
     }
 
@@ -81,18 +80,18 @@ void eepromDump(uint8_t bytesPerRow)
 /* ======================================================================
 Function: readConfig
 Purpose : fill config structure with data located into eeprom
-Input 	: -
+Input 	: true if we need to clear actual struc in case of error
 Output	: true if config found and crc ok, false otherwise
 Comments: -
 ====================================================================== */
-bool readConfig (void) 
+bool readConfig (bool clear_on_error) 
 {
 	uint16_t crc = ~0;
 	uint8_t * pconfig = (uint8_t *) &config ;
 	uint8_t data ;
 
 	// For whole size of config structure
-	for (uint8_t i = 0; i < sizeof(_Config); ++i) {
+	for (uint16_t i = 0; i < sizeof(_Config); ++i) {
 		// read data
 		data = EEPROM.read(i);
 		
@@ -105,8 +104,9 @@ bool readConfig (void)
 	
 	// CRC Error ?
 	if (crc != 0) {
-		// Clear config
-		memset(&config, 0, sizeof( _Config ));
+		// Clear config if wanted
+    if (clear_on_error)
+		  memset(&config, 0, sizeof( _Config ));
 		return false;
 	}
 	
@@ -125,6 +125,8 @@ bool saveConfig (void)
   uint8_t * pconfig ;
   bool ret_code;
 
+  //eepromDump(32);
+
   // Init pointer 
   pconfig = (uint8_t *) &config ;
 	
@@ -132,28 +134,32 @@ bool saveConfig (void)
   config.crc = ~0;
 
 	// For whole size of config structure, pre-calculate CRC
-  for (uint8_t i = 0; i < sizeof (_Config) - 2; ++i)
+  for (uint16_t i = 0; i < sizeof (_Config) - 2; ++i)
     config.crc = crc16Update(config.crc, *pconfig++);
 
 	// Re init pointer 
   pconfig = (uint8_t *) &config ;
 
-	// For whole size of config structure, write to EEP
-  for (byte i = 0; i < sizeof(_Config); ++i) 
-	    EEPROM.write(i, *pconfig++);
+  // For whole size of config structure, write to EEP
+  for (uint16_t i = 0; i < sizeof(_Config); ++i) 
+    EEPROM.write(i, *pconfig++);
 
   // Physically save
   EEPROM.commit();
   
-  // Read Again to see if saved ok
-  ret_code = readConfig();
+  // Read Again to see if saved ok, but do 
+  // not clear if error this avoid clearing
+  // default config and breaks OTA
+  ret_code = readConfig(false);
   
-  Debug(F("Write config"));
+  Debug(F("Write config "));
   
   if (ret_code)
     Debugln(F("OK!"));
   else
     Debugln(F("Error!"));
+
+  //eepromDump(32);
   
   // return result
   return (ret_code);
@@ -168,6 +174,32 @@ Comments: -
 ====================================================================== */
 void showConfig() 
 {
- 
+  DebuglnF("===== Wifi"); 
+  DebugF("ssid     :"); Debugln(config.ssid); 
+  DebugF("psk      :"); Debugln(config.psk); 
+  DebugF("host     :"); Debugln(config.host); 
+  DebugF("ap_psk   :"); Debugln(config.ap_psk); 
+  DebugF("OTA auth :"); Debugln(config.ota_auth); 
+  DebugF("OTA port :"); Debugln(config.ota_port); 
+  DebugF("Config   :"); 
+  if (config.config & CFG_RGB_LED) DebugF(" RGB"); 
+  if (config.config & CFG_DEBUG)   DebugF(" DEBUG"); 
+  if (config.config & CFG_LCD)     DebugF(" LCD"); 
+
+  DebuglnF("\r\n===== Emoncms"); 
+  DebugF("host     :"); Debugln(config.emoncms.host); 
+  DebugF("port     :"); Debugln(config.emoncms.port); 
+  DebugF("url      :"); Debugln(config.emoncms.url); 
+  DebugF("key      :"); Debugln(config.emoncms.apikey); 
+  DebugF("node     :"); Debugln(config.emoncms.node); 
+  DebugF("freq     :"); Debugln(config.emoncms.freq); 
+
+  DebuglnF("\r\n===== Jeedom"); 
+  DebugF("host     :"); Debugln(config.jeedom.host); 
+  DebugF("port     :"); Debugln(config.jeedom.port); 
+  DebugF("url      :"); Debugln(config.jeedom.url); 
+  DebugF("key      :"); Debugln(config.jeedom.apikey); 
+  DebugF("compteur :"); Debugln(config.jeedom.adco); 
+  DebugF("freq     :"); Debugln(config.jeedom.freq); 
 }
 

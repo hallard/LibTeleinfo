@@ -7,6 +7,10 @@ Desktop.ini
 
 # Recycle Bin used on file shares
 $RECYCLE.BIN/
+node_modules/
+bootstrap-3.3.5-dist/
+font-awesome-4.5.0/
+webdev/
 
 # Windows Installer files
 *.cab

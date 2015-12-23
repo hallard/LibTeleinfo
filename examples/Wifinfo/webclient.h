@@ -1,5 +1,5 @@
 // **********************************************************************************
-// ESP8266 Teleinfo WEB Server routing Include file
+// ESP8266 Teleinfo WEB Client routing Include file
 // **********************************************************************************
 // Creative Commons Attrib Share-Alike License
 // You are free to use/extend this library but please abide with the CC-BY-SA license:
@@ -14,34 +14,25 @@
 //
 // Written by Charles-Henri Hallard (http://hallard.me)
 //
-// History : V1.00 2015-06-14 - First release
+// History : V1.00 2015-12-04 - First release
 //
 // All text above must be included in any redistribution.
 //
 // **********************************************************************************
 
-#ifndef ROUTE_H
-#define ROUTE_H
+#ifndef WEBCLIENT_H
+#define WEBCLIENT_H
 
 // Include main project include file
-#include "ESP8266_WifInfo.h"
-
-// Web response max size
-#define RESPONSE_BUFFER_SIZE 4096
+#include "Wifinfo.h"
 
 // Exported variables/object instancied in main sketch
 // ===================================================
-extern char response[];
-extern uint16_t response_idx;
 
 // declared exported function from route.cpp
 // ===================================================
-void handleTest(void);
-void handleRoot(void); 
-void handleNotFound(void);
-void tinfoJSONTable(void);
-void sysJSONTable(void);
-void sendJSON(void);
-
+boolean httpPost(char * host, uint16_t port, char * url);
+boolean emoncmsPost(void);
+boolean jeedomPost(void);
 
 #endif
