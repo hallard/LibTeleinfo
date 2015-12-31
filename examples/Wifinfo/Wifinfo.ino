@@ -33,7 +33,7 @@
 //#include <Hash.h>
 #include <NeoPixelBus.h>
 #include <LibTeleinfo.h>
-#include <fs.h>
+#include <FS.h>
 
 // Global project file
 #include "Wifinfo.h"

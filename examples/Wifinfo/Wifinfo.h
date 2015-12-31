@@ -28,14 +28,14 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266HTTPClient.h>
 #include <ESP8266mDNS.h>
-#include <WiFiUDP.h>
+#include <WifiUdp.h>
 #include <EEPROM.h>
 #include <Ticker.h>
 //#include <WebSocketsServer.h>
 //#include <Hash.h>
 #include <NeoPixelBus.h>
 #include <LibTeleinfo.h>
-#include <fs.h>
+#include <FS.h>
 
 extern "C" {
 #include "user_interface.h"
