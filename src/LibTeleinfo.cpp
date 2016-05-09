@@ -247,13 +247,22 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
       // Our linked list structure sizeof(ValueList)
       // + Name  + '\0'
       // + Value + '\0'
-      size_t size = sizeof(ValueList) + lgname + 1 + lgvalue + 1  ;
+      size_t size ;
+      #ifdef ESP8266
+        lgname = xPortWantedSizeAlign(lgname+1);   // Align name buffer
+        lgvalue = xPortWantedSizeAlign(lgvalue+1); // Align value buffer
+        // Align the whole structure
+        size = xPortWantedSizeAlign( sizeof(ValueList) + lgname + lgvalue  )     ; 
+      #else
+        size = sizeof(ValueList) + lgname + 1 + lgvalue + 1  ;
+      #endif
+
       // Create new node with size to store strings
       if ((newNode = (ValueList  *) malloc(size) ) == NULL) 
         return ( (ValueList *) NULL );
-      else 
-        // get our buffer Safe
-        memset(newNode, 0, size);
+
+      // get our buffer Safe
+      memset(newNode, 0, size);
       
       // Put the new node on the list
       me->next = newNode;

@@ -67,6 +67,9 @@
   #define TI_Debugflush  
 #endif
 
+#pragma pack(push)  // push current alignment to stack
+#pragma pack(1)     // set alignment to 1 byte boundary
+
 // Linked list structure containing all values received
 typedef struct _ValueList ValueList;
 struct _ValueList 
@@ -77,6 +80,8 @@ struct _ValueList
   char  * name;    // LABEL of value name
   char  * value;   // value 
 };
+
+#pragma pack(pop)
 
 // Library state machine
 enum _State_e {
