@@ -184,10 +184,10 @@ void handleFormConfig(void)
 
     if ( saveConfig() ) {
       ret = 200;
-      response = PSTR("OK");
+      response = "OK";
     } else {
       ret = 412;
-      response = PSTR("Unable to save configuration");
+      response = "Unable to save configuration";
     }
 
     showConfig();
@@ -195,7 +195,7 @@ void handleFormConfig(void)
   else
   {
     ret = 400;
-    response = PSTR("Missing Form Field");
+    response = "Missing Form Field";
   }
 
   DebugF("Sending response "); 
