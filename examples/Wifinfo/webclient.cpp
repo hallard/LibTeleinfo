@@ -39,7 +39,7 @@ boolean httpPost(char * host, uint16_t port, char * url)
   unsigned long start = millis();
 
   // configure traged server and url
-  http.begin(host, port, url, port==443 ? true : false); 
+  http.begin(host, port, url); 
   //http.begin("http://emoncms.org/input/post.json?node=20&apikey=2f13e4608d411d20354485f72747de7b&json={PAPP:100}");
   //http.begin("emoncms.org", 80, "/input/post.json?node=20&apikey=2f13e4608d411d20354485f72747de7b&json={}"); //HTTP
 
