@@ -7,12 +7,13 @@
     "type": "git",
     "url": "https://github.com/hallard/LibTeleinfo.git"
   },
+  "version": "1.0.1",
   "authors":
   {
     "name": "Charles-Henri Hallard",
     "url": "http://hallard.me"
   },
   "frameworks": "arduino",
-  "platforms": "atmelavr"  
+  "platforms": "*"  
 }
 
