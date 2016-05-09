@@ -38,9 +38,9 @@
 
 // Using ESP8266 ?
 #ifdef ESP8266
-//#include "stdlib_noniso.h"
 #include <ESP8266WiFi.h>
 #endif
+
 
 // Define this if you want library to be verbose
 //#define TI_DEBUG
@@ -66,6 +66,12 @@
   #define TI_Debugf(...) 
   #define TI_Debugflush  
 #endif
+
+#ifdef ESP8266
+  // For 4 bytes Aligment boundaries
+  #define ESP8266_allocAlign(size)  ((size + 3) & ~((size_t) 3))
+#endif
+
 
 #pragma pack(push)  // push current alignment to stack
 #pragma pack(1)     // set alignment to 1 byte boundary

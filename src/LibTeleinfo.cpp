@@ -249,10 +249,10 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
       // + Value + '\0'
       size_t size ;
       #ifdef ESP8266
-        lgname = xPortWantedSizeAlign(lgname+1);   // Align name buffer
-        lgvalue = xPortWantedSizeAlign(lgvalue+1); // Align value buffer
+        lgname = ESP8266_allocAlign(lgname+1);   // Align name buffer
+        lgvalue = ESP8266_allocAlign(lgvalue+1); // Align value buffer
         // Align the whole structure
-        size = xPortWantedSizeAlign( sizeof(ValueList) + lgname + lgvalue  )     ; 
+        size = ESP8266_allocAlign( sizeof(ValueList) + lgname + lgvalue  )     ; 
       #else
         size = sizeof(ValueList) + lgname + 1 + lgvalue + 1  ;
       #endif
