@@ -46,11 +46,15 @@ bool ota_blink;
 // Teleinfo
 TInfo tinfo;
 
-// RGB Loed
-NeoPixelBus rgb_led = NeoPixelBus(1, RGB_LED_PIN, NEO_RGB | NEO_KHZ800);
+// RGB Led
+#ifdef RGB_LED_PIN
+//NeoPixelBus rgb_led = NeoPixelBus(1, RGB_LED_PIN, NEO_RGB | NEO_KHZ800);
+NeoPixelBus<NeoGrbFeature, NeoEsp8266BitBang800KbpsMethod> rgb_led(1, RGB_LED_PIN);
+#endif
 
-// define whole brigtness level for RGBLED
-uint8_t rgb_brightness = 127;
+
+// define whole brigtness level for RGBLED (50%)
+uint8_t rgb_brightness = 50;
 // LED Blink timers
 Ticker rgb_ticker;
 Ticker blu_ticker;
@@ -142,6 +146,51 @@ void LedOff(int led)
   if (led==RGB_LED_PIN)
     LedRGBOFF();
 }
+
+
+// Light off the RGB LED
+#ifdef RGB_LED_PIN
+/* ======================================================================
+Function: LedRGBON
+Purpose : Light RGB Led with HSB value
+Input   : Hue (0..255)
+          Saturation (0..255)
+          Brightness (0..255)
+Output  : - 
+Comments: 
+====================================================================== */
+void LedRGBON (uint16_t hue)
+{
+  if (config.config & CFG_RGB_LED) {
+    // Convert to neoPixel API values
+    // H (is color from 0..360) should be between 0.0 and 1.0
+    // L (is brightness from 0..100) should be between 0.0 and 0.5
+    RgbColor target = HslColor( hue / 360.0f, 1.0f, rgb_brightness * 0.005f );    
+
+      // Set RGB Led
+    rgb_led.SetPixelColor(0, target); 
+    rgb_led.Show();
+  }
+}
+
+/* ======================================================================
+Function: LedRGBOFF 
+Purpose : light off the RGN LED
+Input   : -
+Output  : - 
+Comments: -
+====================================================================== */
+//void LedOff(int led)
+void LedRGBOFF(void)
+{
+  if (config.config & CFG_RGB_LED) {
+    rgb_led.SetPixelColor(0,RgbColor(0)); 
+    rgb_led.Show();
+  }
+}
+
+#endif
+
 
 /* ======================================================================
 Function: ADPSCallback 
