@@ -93,10 +93,10 @@ typedef struct
   char  host[CFG_EMON_HOST_SIZE+1]; 		// FQDN 
   char  apikey[CFG_EMON_APIKEY_SIZE+1]; // Secret
   char  url[CFG_EMON_URL_SIZE+1];  			// Post URL
-  uint8_t port;    									    // Protocol port (HTTP/HTTPS)
-  uint8_t node;     									  // optional node
+  uint16_t port;    								    // Protocol port (HTTP/HTTPS)
+  uint8_t  node;     									  // optional node
   uint32_t freq;                        // refresh rate
-  uint8_t filler[23];									  // in case adding data in config avoiding loosing current conf by bad crc*/
+  uint8_t  filler[22];  							  // in case adding data in config avoiding loosing current conf by bad crc*/
 } _emoncms;
 
 // Config for jeedom
@@ -107,9 +107,9 @@ typedef struct
   char  apikey[CFG_JDOM_APIKEY_SIZE+1]; // Secret
   char  url[CFG_JDOM_URL_SIZE+1];       // Post URL
   char  adco[CFG_JDOM_ADCO_SIZE+1];     // Identifiant compteur
-  uint8_t port;                         // Protocol port (HTTP/HTTPS)
+  uint16_t port;                         // Protocol port (HTTP/HTTPS)
   uint32_t freq;                        // refresh rate
-  uint8_t filler[11];                   // in case adding data in config avoiding loosing current conf by bad crc*/
+  uint8_t filler[10];                   // in case adding data in config avoiding loosing current conf by bad crc*/
 } _jeedom;
 
 // Config saved into eeprom
