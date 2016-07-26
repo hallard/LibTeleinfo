@@ -475,6 +475,13 @@ int WifiHandleConn(boolean setup = false)
       DebuglnF("Error!");
       Debugflush();
 
+      // STA+AP Mode without connected to STA, autoconnect will search
+      // other frequencies while trying to connect, this is causing issue
+      // to AP mode, so disconnect will avoid this
+
+      // Disable auto retry search channel
+      WiFi.disconnect(); 
+
       // SSID = hostname
       strcpy(ap_ssid, config.host );
       DebugF("Switching to AP ");
