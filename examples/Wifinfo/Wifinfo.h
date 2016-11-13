@@ -50,7 +50,7 @@ extern "C" {
 #define DEBUG_SERIAL	Serial1
 #define DEBUG_SERIAL1	
 
-#define WIFINFO_VERSION "1.0.0"
+#define WIFINFO_VERSION "1.0.1"
 
 // I prefix debug macro to be sure to use specific for THIS library
 // debugging, this should not interfere with main sketch or other 
