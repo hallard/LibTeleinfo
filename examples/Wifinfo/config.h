@@ -37,7 +37,7 @@
 #define CFG_EMON_DEFAULT_URL  "/input/post.json"
 
 #define CFG_JDOM_HOST_SIZE    32
-#define CFG_JDOM_APIKEY_SIZE  32
+#define CFG_JDOM_APIKEY_SIZE  48
 #define CFG_JDOM_URL_SIZE     64
 #define CFG_JDOM_ADCO_SIZE    12
 #define CFG_JDOM_DEFAULT_PORT 80
@@ -100,7 +100,7 @@ typedef struct
 } _emoncms;
 
 // Config for jeedom
-// 160 Bytes
+// 256 Bytes
 typedef struct 
 {
   char  host[CFG_JDOM_HOST_SIZE+1];     // FQDN 
@@ -109,7 +109,7 @@ typedef struct
   char  adco[CFG_JDOM_ADCO_SIZE+1];     // Identifiant compteur
   uint16_t port;                         // Protocol port (HTTP/HTTPS)
   uint32_t freq;                        // refresh rate
-  uint8_t filler[10];                   // in case adding data in config avoiding loosing current conf by bad crc*/
+  uint8_t filler[90];                   // in case adding data in config avoiding loosing current conf by bad crc*/
 } _jeedom;
 
 // Config saved into eeprom
@@ -126,7 +126,7 @@ typedef struct
   uint8_t  filler[131];      		   // in case adding data in config avoiding loosing current conf by bad crc
   _emoncms emoncms;                // Emoncms configuration
   _jeedom  jeedom;                 // jeedom configuration
-  uint8_t  filler1[352];           // Another filler in case we need more
+  uint8_t  filler1[256];           // Another filler in case we need more
   uint16_t crc;
 } _Config;
 
