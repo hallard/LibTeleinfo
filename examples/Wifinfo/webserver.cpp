@@ -767,7 +767,7 @@ void handleNotFound(void)
 
         //Debugf("compare to '%s' ", me->name);
         // Do we have this one ?
-        if (stricmp (me->name, uri) == 0 )
+        if (strcmp (me->name, uri) == 0 )
         {
           // no need to continue
           found = true;
