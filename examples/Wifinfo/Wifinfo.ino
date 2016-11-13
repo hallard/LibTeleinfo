@@ -49,7 +49,8 @@ TInfo tinfo;
 // RGB Led
 #ifdef RGB_LED_PIN
 //NeoPixelBus rgb_led = NeoPixelBus(1, RGB_LED_PIN, NEO_RGB | NEO_KHZ800);
-NeoPixelBus<NeoGrbFeature, NeoEsp8266BitBang800KbpsMethod> rgb_led(1, RGB_LED_PIN);
+//NeoPixelBus<NeoGrbFeature, NeoEsp8266BitBang800KbpsMethod> rgb_led(1, RGB_LED_PIN);
+NeoPixelBus<NeoRgbFeature, NeoEsp8266BitBang800KbpsMethod> rgb_led(1, RGB_LED_PIN);
 #endif
 
 
@@ -348,11 +349,11 @@ Comments: -
 ====================================================================== */
 void ResetConfig(void) 
 {
-  // enable default configuration
+  // Start cleaning all that stuff
   memset(&config, 0, sizeof(_Config));
 
   // Set default Hostname
-  sprintf_P(config.host, PSTR("WifInfo_%06X"), ESP.getChipId());
+  sprintf_P(config.host, PSTR("WifInfo-%06X"), ESP.getChipId());
   strcpy_P(config.ota_auth, PSTR(DEFAULT_OTA_AUTH));
   config.ota_port = DEFAULT_OTA_PORT ;
 
@@ -362,18 +363,12 @@ void ResetConfig(void)
   strcpy_P(config.emoncms.host, CFG_EMON_DEFAULT_HOST);
   config.emoncms.port = CFG_EMON_DEFAULT_PORT;
   strcpy_P(config.emoncms.url, CFG_EMON_DEFAULT_URL);
-  config.emoncms.apikey[0] = '\0';
-  config.emoncms.node = 0;
-  config.emoncms.freq = 0;
 
   // Jeedom
   strcpy_P(config.jeedom.host, CFG_JDOM_DEFAULT_HOST);
   config.jeedom.port = CFG_JDOM_DEFAULT_PORT;
   strcpy_P(config.jeedom.url, CFG_JDOM_DEFAULT_URL);
-  strcpy_P(config.jeedom.adco, CFG_JDOM_DEFAULT_ADCO);
-  config.jeedom.apikey[0] = '\0';
-  config.jeedom.freq = 0;
-
+  //strcpy_P(config.jeedom.adco, CFG_JDOM_DEFAULT_ADCO);
 
   config.config |= CFG_RGB_LED;
 
