@@ -4,3 +4,4 @@ tools_upload_results.txt
 TOOLS_BASE.BAT
 TOOLS_BUILD.BAT
 TOOLS_UPLOAD.BAT
+*.bin
