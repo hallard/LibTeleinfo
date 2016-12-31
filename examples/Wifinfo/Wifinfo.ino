@@ -63,10 +63,12 @@ Ticker red_ticker;
 Ticker Every_1_Sec;
 Ticker Tick_emoncms;
 Ticker Tick_jeedom;
+Ticker Tick_httpRequest;
 
 volatile boolean task_1_sec = false;
 volatile boolean task_emoncms = false;
 volatile boolean task_jeedom = false;
+volatile boolean task_httpRequest = false;
 unsigned long seconds = 0;
 
 // sysinfo data
@@ -127,6 +129,18 @@ Comments: Like an Interrupt, need to be short, we set flag for main loop
 void Task_jeedom()
 {
   task_jeedom = true;
+}
+
+/* ======================================================================
+Function: Task_httpRequest
+Purpose : callback of http request ticker
+Input   : 
+Output  : -
+Comments: Like an Interrupt, need to be short, we set flag for main loop
+====================================================================== */
+void Task_httpRequest()
+{
+  task_httpRequest = true;
 }
 
 /* ======================================================================
@@ -370,6 +384,11 @@ void ResetConfig(void)
   strcpy_P(config.jeedom.url, CFG_JDOM_DEFAULT_URL);
   //strcpy_P(config.jeedom.adco, CFG_JDOM_DEFAULT_ADCO);
 
+  // HTTP Request
+  strcpy_P(config.httpReq.host, CFG_HTTPREQ_DEFAULT_HOST);
+  config.httpReq.port = CFG_HTTPREQ_DEFAULT_PORT;
+  strcpy_P(config.httpReq.path, CFG_HTTPREQ_DEFAULT_PATH);
+  
   config.config |= CFG_RGB_LED;
 
   // save back
@@ -441,7 +460,7 @@ int WifiHandleConn(boolean setup = false)
         WiFi.begin(config.ssid);
       }
 
-      timeout = 25; // 25 * 200 ms = 5 sec time out
+      timeout = 50; // 50 * 200 ms = 5 sec time out
       // 200 ms loop
       while ( ((ret = WiFi.status()) != WL_CONNECTED) && timeout )
       {
@@ -570,6 +589,7 @@ void setup()
   DebugF("Config size="); Debug(sizeof(_Config));
   DebugF(" (emoncms=");   Debug(sizeof(_emoncms));
   DebugF("  jeedom=");   Debug(sizeof(_jeedom));
+  DebugF("  http request=");   Debug(sizeof(_httpRequest));
   Debugln(')');
   Debugflush();
 
@@ -773,6 +793,10 @@ void setup()
   // Jeedom Update if needed
   if (config.jeedom.freq) 
     Tick_jeedom.attach(config.jeedom.freq, Task_jeedom);
+
+  // HTTP Request Update if needed
+  if (config.httpReq.freq) 
+    Tick_httpRequest.attach(config.httpReq.freq, Task_httpRequest);
 }
 
 /* ======================================================================
@@ -802,6 +826,9 @@ void loop()
   } else if (task_jeedom) { 
     jeedomPost();  
     task_jeedom=false;
+  } else if (task_httpRequest) { 
+    httpRequest();  
+    task_httpRequest=false;
   }
 
   // Handle teleinfo serial
