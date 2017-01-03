@@ -1,0 +1,9 @@
+{
+    "scripts" :
+    {
+        "Build"     : "cd .\\examples\\Wifinfo\\ && TOOLS_BUILD.BAT",
+        "Upload"    : "cd .\\examples\\Wifinfo\\ && TOOLS_UPLOAD.BAT",
+        "git push"  : "git push origin master",
+        "git pull"  : "git pull"
+    }
+}
