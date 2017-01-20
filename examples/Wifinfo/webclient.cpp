@@ -289,7 +289,43 @@ boolean httpRequest(void)
           {
             url.replace("%PAPP%", me->value);
           }
-        }
+		   if (valName == "ADCO")
+          {
+            url.replace("%ADCO%", me->value);
+          }
+		  if (valName == "OPTARIF")
+          {
+            url.replace("%OPTARIF%", me->value);
+          }
+		  if (valName == "ISOUC")
+          {
+            url.replace("%ISOUC%", me->value);
+          }
+		  if (valName == "PTEC")
+          {
+            url.replace("%PTEC%", me->value);
+          }
+		  if (valName == "IINST")
+          {
+            url.replace("%IINST%", me->value);
+          }
+		  if (valName == "IMAX")
+          {
+            url.replace("%IMAX%", me->value);
+          }
+		  if (valName == "HHPHC")
+          {
+            url.replace("%HHPHC%", me->value);
+          }
+		  if (valName == "MOTDETAT")
+          {
+            url.replace("%MOTDETAT%", me->value);
+          }
+		  if (valName == "BASE")
+          {
+            url.replace("%BASE%", me->value);
+          }
+		 }
       } // While me
 
       ret = httpPost( config.httpReq.host, config.httpReq.port, (char *) url.c_str()) ;
