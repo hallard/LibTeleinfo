@@ -42,9 +42,14 @@
 #define CFG_JDOM_ADCO_SIZE    12
 #define CFG_JDOM_DEFAULT_PORT 80
 #define CFG_JDOM_DEFAULT_HOST "jeedom.local"
-#define CFG_JDOM_DEFAULT_URL  "/jeedom/plugins/teleinfo/core/php/jeeTeleinfo.php"
+#define CFG_JDOM_DEFAULT_URL  "/plugins/teleinfo/core/php/jeeTeleinfo.php"
 #define CFG_JDOM_DEFAULT_ADCO "0000111122223333"
 
+#define CFG_HTTPREQ_HOST_SIZE    32
+#define CFG_HTTPREQ_PATH_SIZE    150
+#define CFG_HTTPREQ_DEFAULT_PORT 80
+#define CFG_HTTPREQ_DEFAULT_HOST "127.0.0.1"
+#define CFG_HTTPREQ_DEFAULT_PATH  "/json.htm?type=command&param=udevice&idx=1&nvalue=0&svalue=%HCHP%;%HCHC%;0;0;%PAPP%;0"
 
 // Port pour l'OTA
 #define DEFAULT_OTA_PORT     8266
@@ -79,6 +84,11 @@
 #define CFG_FORM_JDOM_ADCO  FPSTR("jdom_adco")
 #define CFG_FORM_JDOM_FREQ  FPSTR("jdom_freq")
 
+#define CFG_FORM_HTTPREQ_HOST  FPSTR("httpreq_host")
+#define CFG_FORM_HTTPREQ_PORT  FPSTR("httpreq_port")
+#define CFG_FORM_HTTPREQ_PATH  FPSTR("httpreq_path")
+#define CFG_FORM_HTTPREQ_FREQ  FPSTR("httpreq_freq")
+
 #define CFG_FORM_IP  FPSTR("wifi_ip");
 #define CFG_FORM_GW  FPSTR("wifi_gw");
 #define CFG_FORM_MSK FPSTR("wifi_msk");
@@ -112,6 +122,17 @@ typedef struct
   uint8_t filler[90];                   // in case adding data in config avoiding loosing current conf by bad crc*/
 } _jeedom;
 
+// Config for http request
+// 256 Bytes
+typedef struct 
+{
+  char  host[CFG_HTTPREQ_HOST_SIZE+1];  // FQDN 
+  char  path[CFG_HTTPREQ_PATH_SIZE+1];  // Path
+  uint16_t port;                        // Protocol port (HTTP/HTTPS)
+  uint32_t freq;                        // refresh rate
+  uint8_t filler[24];                   // in case adding data in config avoiding loosing current conf by bad crc*/
+} _httpRequest;
+
 // Config saved into eeprom
 // 1024 bytes total including CRC
 typedef struct 
@@ -126,7 +147,7 @@ typedef struct
   uint8_t  filler[131];      		   // in case adding data in config avoiding loosing current conf by bad crc
   _emoncms emoncms;                // Emoncms configuration
   _jeedom  jeedom;                 // jeedom configuration
-  uint8_t  filler1[256];           // Another filler in case we need more
+  _httpRequest httpReq;            // HTTP request
   uint16_t crc;
 } _Config;
 

@@ -201,5 +201,11 @@ void showConfig()
   DebugF("key      :"); Debugln(config.jeedom.apikey); 
   DebugF("compteur :"); Debugln(config.jeedom.adco); 
   DebugF("freq     :"); Debugln(config.jeedom.freq); 
+
+  DebuglnF("\r\n===== HTTP request"); 
+  DebugF("host     :"); Debugln(config.httpReq.host); 
+  DebugF("port     :"); Debugln(config.httpReq.port); 
+  DebugF("path     :"); Debugln(config.httpReq.path); 
+  DebugF("freq     :"); Debugln(config.httpReq.freq); 
 }
 

@@ -182,6 +182,21 @@ void handleFormConfig(void)
     }
     config.jeedom.freq = itemp;
 
+    // HTTP Request
+    strncpy(config.httpReq.host, server.arg("httpreq_host").c_str(), CFG_HTTPREQ_HOST_SIZE );
+    strncpy(config.httpReq.path, server.arg("httpreq_path").c_str(), CFG_HTTPREQ_PATH_SIZE );
+    itemp = server.arg("httpreq_port").toInt();
+    config.httpReq.port = (itemp>=0 && itemp<=65535) ? itemp : CFG_HTTPREQ_DEFAULT_PORT ; 
+    itemp = server.arg("httpreq_freq").toInt();
+    if (itemp>0 && itemp<=86400)
+    {
+      Tick_httpRequest.detach();
+      Tick_httpRequest.attach(itemp, Task_httpRequest);
+    } else {
+      itemp = 0 ; 
+    }
+    config.httpReq.freq = itemp;
+
     if ( saveConfig() ) {
       ret = 200;
       response = "OK";
@@ -500,6 +515,12 @@ void getConfJSONData(String & r)
   r+=CFG_FORM_JDOM_KEY;  r+=FPSTR(FP_QCQ); r+=config.jeedom.apikey; r+= FPSTR(FP_QCNL); 
   r+=CFG_FORM_JDOM_ADCO; r+=FPSTR(FP_QCQ); r+=config.jeedom.adco;   r+= FPSTR(FP_QCNL); 
   r+=CFG_FORM_JDOM_FREQ; r+=FPSTR(FP_QCQ); r+=config.jeedom.freq;  
+
+  r+=CFG_FORM_HTTPREQ_HOST; r+=FPSTR(FP_QCQ); r+=config.httpReq.host;   r+= FPSTR(FP_QCNL); 
+  r+=CFG_FORM_HTTPREQ_PORT; r+=FPSTR(FP_QCQ); r+=config.httpReq.port;   r+= FPSTR(FP_QCNL); 
+  r+=CFG_FORM_HTTPREQ_PATH; r+=FPSTR(FP_QCQ); r+=config.httpReq.path;   r+= FPSTR(FP_QCNL);  
+  r+=CFG_FORM_HTTPREQ_FREQ; r+=FPSTR(FP_QCQ); r+=config.httpReq.freq;  
+  
 
   r+= F("\""); 
   // Json end

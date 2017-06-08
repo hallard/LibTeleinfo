@@ -34,5 +34,6 @@
 boolean httpPost(char * host, uint16_t port, char * url);
 boolean emoncmsPost(void);
 boolean jeedomPost(void);
+boolean httpRequest(void);
 
 #endif

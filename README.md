@@ -1,54 +1,35 @@
-Teleinfo Universal Library
-==========================
+# Teleinfo Universal Library
+This is a fork of Teleinfo Universal Library for the ESP8266 MCU  
+This is a generic Teleinfo French Meter Measure Library  
+- Github source : <https://github.com/hallard/LibTeleinfo>
 
-This is a generic Teleinfo French Meter Measure Library, it can be used on Arduino like device and also such as Spark Core, Particle, ESP8266, Raspberry PI or anywhere you can do Cpp code ...
+# My Features
+- Add all possible variable (without ejp) following : 
 
-You can see Teleinformation official french datasheet [there][1]
+Ces différents messages donnent les indications suivantes en fonction de l’abonnement souscrit :
+N° d’identification du compteur : ADCO (12 caractères)
+Option tarifaire (type d’abonnement) : OPTARIF (4 car.)
+Intensité souscrite : ISOUSC ( 2 car. unité = ampères)
+Index si option = base : BASE ( 9 car. unité = Wh)
+Index heures creuses si option = heures creuses : HCHC ( 9 car. unité = Wh)
+Index heures pleines si option = heures creuses : HCHP ( 9 car. unité = Wh)
+Index heures normales si option = EJP : EJP HN ( 9 car. unité = Wh)
+Index heures de pointe mobile si option = EJP : EJP HPM ( 9 car. unité = Wh)
+Index heures creuses jours bleus si option = tempo : BBR HC JB ( 9 car. unité = Wh)
+Index heures pleines jours bleus si option = tempo : BBR HP JB ( 9 car. unité = Wh)
+Index heures creuses jours blancs si option = tempo : BBR HC JW ( 9 car. unité = Wh)
+Index heures pleines jours blancs si option = tempo : BBR HP JW ( 9 car. unité = Wh)
+Index heures creuses jours rouges si option = tempo : BBR HC JR ( 9 car. unité = Wh)
+Index heures pleines jours rouges si option = tempo : BBR HP JR ( 9 car. unité = Wh)
+Préavis EJP si option = EJP : PEJP ( 2 car.) 30mn avant période EJP
+Période tarifaire en cours : PTEC ( 4 car.)
+Couleur du lendemain si option = tempo : DEMAIN
+Intensité instantanée : IINST ( 3 car. unité = ampères)
+Avertissement de dépassement de puissance souscrite : ADPS ( 3 car. unité = ampères) (message émis uniquement en cas de dépassement effectif, dans ce cas il est immédiat)
+Intensité maximale : IMAX ( 3 car. unité = ampères)
+Puissance apparente : PAPP ( 5 car. unité = Volt.ampères)
+Groupe horaire si option = heures creuses ou tempo : HHPHC (1 car.)
+Mot d’état (autocontrôle) : MOTDETAT (6 car.)
 
-Since this is really dedicated to French energy measuring system, I will continue in French
-
-###Installation
-Copier le contenu de ce dossier (download zip) dans le dossier libraries de votre environnement Arduino Vous devriez avoir maintenant quelque chose comme `your_sketchbook_folder/libraries/LibTeleinfo` et ce dossier doit contentir les fichiers .cpp et .h ainsi que le sous dossier `examples`.
-<br/>
-Pour trouver votre dossier de sketchbook, dans l'environnement IDE, allez dans File>Preferences.
-<br/>
-allez voir ce [tutorial][2] sur les librairies Arduino si beoin.
-<br/>
-
-##Documentation
-J'ai écrit un article [dédié][10] sur cette librairie, vous pouvez aussi voir les [catégories][6] associées à la téléinfo sur mon [blog][7].
-Pour les commentaires et le support vous pouvez allez sur le [forum][8] dédié ou dans la [communauté][9] 
-
-###Sketch d'exemples
-- [Arduino_Softserial_Etiquette][3] Affiche des informations de téléinformation reçue étiquette par étiquette
-- [Arduino_Softserial_Blink][11] Affiche des informations de téléinformation reçue trame par trame avec clignotement LED court/long si les données ont été modifiés
-- [Arduino_Softserial_JSON][4] Retourne les informations de téléinformation au format JSON sur la liaison série.
-- [Raspberry_JSON][12] Retourne les informations de téléinformation au format JSON sur stdout.
-- [Wifinfo][5] ESP8266 Wifi Teleinformation, Web + Rest + bonus, version en cours de développement, à venir mais un article [dédié][13] est déjà présent sur mon blog
-
-##Pourquoi
-- J'utilise la téléinfo dans plusieurs de mes programmes et j'en avait marre de devoir faire des copier/coller de code constament, j'ai donc décidé de faire une librairie commune que j'utilise sans me poser de question
-
-##License
-Cette oeuvre est mise à disposition selon les termes de la Licence Creative Commons Attribution - Pas d’Utilisation Commerciale - Partage dans les Mêmes Conditions 4.0 International.
-
-Si vous êtes une entreprise et que vous souhaitez participer car vous utilisez cette librairie dans du hardware (box, automate, ...), vous pouvez toujours m'envoyer un exemplaire de votre fabrication, c'est toujours sympa de voir ce qui est fait avec ce code ;-)
-
-##Divers
-Vous pouvez aller voir les nouveautés et autres projets sur [blog][7] 
-
-[1]: http://www.erdf.fr/sites/default/files/ERDF-NOI-CPT_02E.pdf
-[2]: http://learn.adafruit.com/arduino-tips-tricks-and-techniques/arduino-libraries
-[6]: https://hallard.me/category/tinfo/
-[7]: https://hallard.me
-[8]: https://community.hallard.me/category/7
-[9]: https://community.hallard.me
-[10]: https://hallard.me/libteleinfo
-
-[3]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/Arduino_Softserial/Arduino_Softserial_Etiquette.ino
-[4]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/Arduino_Softserial_JSON/Arduino_Softserial_JSON.ino
-[5]: https://github.com/hallard/LibTeleinfo/tree/master/examples/Wifinfo/Wifinfo.ino
-[11]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/Arduino_Softserial/Arduino_Softserial_Blink.ino
-[12]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/Raspberry_JSON/Raspberry_JSON.ino
-[13]: https://hallard.me/wifiinfo/
+HTTP Request push datas 
 

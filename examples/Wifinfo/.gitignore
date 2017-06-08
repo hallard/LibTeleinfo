@@ -1,0 +1,5 @@
+npm-debug.log
+tools_build_results.txt
+tools_upload_results.txt
+*.bin
+*.gz

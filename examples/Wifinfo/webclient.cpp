@@ -239,3 +239,98 @@ boolean jeedomPost(void)
   return ret;
 }
 
+/* ======================================================================
+Function: HTTP Request
+Purpose : Do a http request
+Input   : 
+Output  : true if post returned 200 OK
+Comments: -
+====================================================================== */
+boolean httpRequest(void)
+{
+  boolean ret = false;
+
+  // Some basic checking
+  if (*config.httpReq.host)
+  {
+    ValueList * me = tinfo.getList();
+    // Got at least one ?
+    if (me && me->next)
+    {
+      String url ; 
+      boolean skip_item;
+
+      url = *config.httpReq.path ? config.httpReq.path : "/";
+      url += "?";
+
+      // Loop thru the node
+      while (me->next) {
+        // go to next node
+        me = me->next;
+        skip_item = false;
+
+        // Si Item virtuel, on le met pas
+        if (*me->name =='_')
+          skip_item = true;
+
+        // On doit ajouter l'item ?
+        if (!skip_item)
+        {
+          String valName = String(me->name);
+          if (valName == "HCHP")
+          {
+            url.replace("%HCHP%", me->value);
+          }
+          if (valName == "HCHC")
+          {
+            url.replace("%HCHC%", me->value);
+          }
+          if (valName == "PAPP")
+          {
+            url.replace("%PAPP%", me->value);
+          }
+		   if (valName == "ADCO")
+          {
+            url.replace("%ADCO%", me->value);
+          }
+		  if (valName == "OPTARIF")
+          {
+            url.replace("%OPTARIF%", me->value);
+          }
+		  if (valName == "ISOUC")
+          {
+            url.replace("%ISOUC%", me->value);
+          }
+		  if (valName == "PTEC")
+          {
+            url.replace("%PTEC%", me->value);
+          }
+		  if (valName == "IINST")
+          {
+            url.replace("%IINST%", me->value);
+          }
+		  if (valName == "IMAX")
+          {
+            url.replace("%IMAX%", me->value);
+          }
+		  if (valName == "HHPHC")
+          {
+            url.replace("%HHPHC%", me->value);
+          }
+		  if (valName == "MOTDETAT")
+          {
+            url.replace("%MOTDETAT%", me->value);
+          }
+		  if (valName == "BASE")
+          {
+            url.replace("%BASE%", me->value);
+          }
+	 }
+      } // While me
+
+      ret = httpPost( config.httpReq.host, config.httpReq.port, (char *) url.c_str()) ;
+    } // if me
+  } // if host
+  return ret;
+}
+

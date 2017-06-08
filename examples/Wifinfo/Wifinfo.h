@@ -124,6 +124,7 @@ extern unsigned long seconds;
 extern _sysinfo sysinfo;
 extern Ticker Tick_emoncms;
 extern Ticker Tick_jeedom;
+extern Ticker Tick_httpRequest;
 
 
 // Exported function located in main sketch
@@ -131,6 +132,7 @@ extern Ticker Tick_jeedom;
 void ResetConfig(void);
 void Task_emoncms();
 void Task_jeedom();
+void Task_httpRequest();
 
 #endif
 
