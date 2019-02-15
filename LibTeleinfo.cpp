@@ -223,7 +223,7 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
             // Do we have enought space to hold new value ?
             if (strlen(me->value) >= lgvalue ) {
               // Copy it
-              strncpy(me->value, value , lgvalue );
+              strncpy(me->value, value , lgvalue +1 ); //Warning strncpy ne copie pas le \0 si on ne fait pas +1
               me->checksum = checksum ;
 
               // That's all
@@ -409,7 +409,7 @@ char * TInfo::valueGet(char * name, char * value)
         if (me->value) {
           // copy to dest buffer
           uint8_t lgvalue = strlen(me->value);
-          strncpy(value, me->value , lgvalue );
+          strncpy(value, me->value , lgvalue +1 ); // Warning strncpy n ajoute pas le \0
           return ( value );
         }
       }
