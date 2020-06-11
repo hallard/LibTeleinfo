@@ -55,11 +55,11 @@ Vous pouvez aller voir les nouveautés et autres projets sur [blog][7]
 [9]: https://community.hallard.me
 [10]: https://hallard.me/libteleinfo
 
-[3]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/Arduino_Softserial/Arduino_Softserial_Etiquette.ino
-[4]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/Arduino_Softserial_JSON/Arduino_Softserial_JSON.ino
+[3]: https://github.com/hallard/LibTeleinfo/blob/master/examples/Arduino_Softserial/Arduino_Softserial_Etiquette.ino
+[4]: https://github.com/hallard/LibTeleinfo/blob/master/examples/Arduino_Softserial_JSON/Arduino_Softserial_JSON.ino
 [5]: https://github.com/hallard/LibTeleinfo/tree/master/examples/Wifinfo/Wifinfo.ino
-[11]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/Arduino_Softserial/Arduino_Softserial_Blink.ino
-[12]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/Raspberry_JSON/Raspberry_JSON.ino
+[11]: https://github.com/hallard/LibTeleinfo/blob/master/examples/Arduino_Softserial/Arduino_Softserial_Blink.ino
+[12]: https://github.com/hallard/LibTeleinfo/blob/master/examples/Raspberry_JSON/Raspberry_JSON.ino
 [13]: https://hallard.me/wifiinfo/
-[14]: https://github.com/hallard/LibTeleinfo/blob/master/Examples/ESP32/ESP32.ino
+[14]: https://github.com/hallard/LibTeleinfo/blob/master/examples/ESP32/ESP32.ino
 
