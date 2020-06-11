@@ -124,7 +124,7 @@ Input   : -
 Output  : -
 Comments: - 
 ====================================================================== */
-uint8_t TInfo::clearBuffer()
+void TInfo::clearBuffer()
 {
   // Clear our buffer, set index to 0
   memset(_recv_buff, 0, TINFO_BUFSIZE);
@@ -209,10 +209,10 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
         // go to next node
         me = me->next;
 
-        // Check if we already have this LABEL
-        if (strncmp(me->name, name, lgname) == 0) {
-          // Already got also this value, return US
-          if (strncmp(me->value, value, lgvalue) == 0) {
+        // Check if we already have this LABEL (same name AND same size)
+        if (lgname==strlen(me->name) && strncmp(me->name, name, lgname)==0) {
+          // Already got also this value  return US
+          if (lgvalue==strlen(me->value) && strncmp(me->value, value, lgvalue) == 0) {
             *flags |= TINFO_FLAGS_EXIST;
             me->flags = *flags;
             return ( me );
@@ -223,7 +223,7 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
             // Do we have enought space to hold new value ?
             if (strlen(me->value) >= lgvalue ) {
               // Copy it
-              strncpy(me->value, value , lgvalue );
+              strlcpy(me->value, value , lgvalue );
               me->checksum = checksum ;
 
               // That's all
@@ -248,11 +248,11 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
       // + Name  + '\0'
       // + Value + '\0'
       size_t size ;
-      #ifdef ESP8266
-        lgname = ESP8266_allocAlign(lgname+1);   // Align name buffer
-        lgvalue = ESP8266_allocAlign(lgvalue+1); // Align value buffer
+      #if defined (ESP8266) || defined (ESP32)
+        lgname = ESP_allocAlign(lgname+1);   // Align name buffer
+        lgvalue = ESP_allocAlign(lgvalue+1); // Align value buffer
         // Align the whole structure
-        size = ESP8266_allocAlign( sizeof(ValueList) + lgname + lgvalue  )     ; 
+        size = ESP_allocAlign( sizeof(ValueList) + lgname + lgvalue  )     ; 
       #else
         size = sizeof(ValueList) + lgname + 1 + lgvalue + 1  ;
       #endif
@@ -421,12 +421,12 @@ char * TInfo::valueGet(char * name, char * value)
       me = me->next;
 
       // Check if we match this LABEL
-      if (strncmp(me->name, name, lgname) == 0) {
+      if (lgname==strlen(me->name) && strncmp(me->name, name, lgname)==0) {
         // this one has a value ?
         if (me->value) {
           // copy to dest buffer
           uint8_t lgvalue = strlen(me->value);
-          strncpy(value, me->value , lgvalue );
+          strlcpy(value, me->value , lgvalue );
           return ( value );
         }
       }
@@ -471,17 +471,19 @@ uint8_t TInfo::valuesDump(void)
       TI_Debug(index) ;
       TI_Debug(F(") ")) ;
 
-      if (me->name)
+      if (me->name) {
         TI_Debug(me->name) ;
-      else
+      } else {
         TI_Debug(F("NULL")) ;
+      }
 
       TI_Debug(F("=")) ;
 
-      if (me->value)
+      if (me->value) {
         TI_Debug(me->value) ;
-      else
+      } else {
         TI_Debug(F("NULL")) ;
+      }
 
       TI_Debug(F(" '")) ;
       TI_Debug(me->checksum) ;
@@ -491,12 +493,15 @@ uint8_t TInfo::valuesDump(void)
       if ( me->flags) {
         TI_Debug(F("Flags:0x")); 
         TI_Debugf("%02X =>", me->flags); 
-        if ( me->flags & TINFO_FLAGS_EXIST)
+        if ( me->flags & TINFO_FLAGS_EXIST) {
           TI_Debug(F("Exist ")) ;
-        if ( me->flags & TINFO_FLAGS_UPDATED)
+        }
+        if ( me->flags & TINFO_FLAGS_UPDATED) {
           TI_Debug(F("Updated ")) ;
-        if ( me->flags & TINFO_FLAGS_ADDED)
+        }
+        if ( me->flags & TINFO_FLAGS_ADDED) {
           TI_Debug(F("New ")) ;
+        }
       }
 
       TI_Debugln() ;
@@ -570,8 +575,7 @@ Comments: return '\0' in case of error
 ====================================================================== */
 unsigned char TInfo::calcChecksum(char *etiquette, char *valeur) 
 {
-  uint8_t i ;
-  uint8_t sum = ' ';  // Somme des codes ASCII du message + un espace
+    uint8_t sum = ' ';  // Somme des codes ASCII du message + un espace
 
   // avoid dead loop, always check all is fine 
   if (etiquette && valeur) {
@@ -643,7 +647,7 @@ ValueList * TInfo::checkLine(char * pline)
   char   checksum;
   char  buff[TINFO_BUFSIZE];
   uint8_t flags  = TINFO_FLAGS_NONE;
-  boolean err = true ;  // Assume  error
+  //boolean err = true ;  // Assume  error
   int len ; // Group len
 
   if (pline==NULL)
@@ -657,7 +661,7 @@ ValueList * TInfo::checkLine(char * pline)
     return NULL;
 
   // Get our own working copy
-  strncpy( buff, _recv_buff, len+1);
+  strlcpy( buff, _recv_buff, len+1);
 
   p = &buff[0];
   ptok = p;       // for sure we start with token name
@@ -832,6 +836,8 @@ _State_e TInfo::process(char c)
     }
     break;
   }
+
+  return _state;
 }
 
 

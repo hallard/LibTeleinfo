@@ -67,11 +67,10 @@
   #define TI_Debugflush  
 #endif
 
-#ifdef ESP8266
+#if defined (ESP8266) || defined (ESP32)
   // For 4 bytes Aligment boundaries
-  #define ESP8266_allocAlign(size)  ((size + 3) & ~((size_t) 3))
+  #define ESP_allocAlign(size)  ((size + 3) & ~((size_t) 3))
 #endif
-
 
 #pragma pack(push)  // push current alignment to stack
 #pragma pack(1)     // set alignment to 1 byte boundary
@@ -133,7 +132,7 @@ class TInfo
     unsigned char calcChecksum(char *etiquette, char *valeur) ;
 
   private:
-    uint8_t       clearBuffer();
+    void          clearBuffer();
     ValueList *   valueAdd (char * name, char * value, uint8_t checksum, uint8_t * flags);
     boolean       valueRemove (char * name);
     boolean       valueRemoveFlagged(uint8_t flags);
