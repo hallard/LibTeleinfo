@@ -80,10 +80,10 @@ typedef struct _ValueList ValueList;
 struct _ValueList 
 {
   ValueList *next; // next element
-  uint8_t checksum;// checksum
-  uint8_t flags;   // specific flags
   char  * name;    // LABEL of value name
   char  * value;   // value 
+  uint8_t checksum;// checksum
+  uint8_t flags;   // specific flags
 };
 
 #pragma pack(pop)
