@@ -29,17 +29,14 @@
 
 #ifdef RGB_LED_PIN
 #include <NeoPixelBus.h>
-
 #define colorSaturation 128
 // three element pixels, in different order and speeds
 NeoPixelBus<NeoGrbFeature, NeoEsp8266BitBang800KbpsMethod> strip(1, RGB_LED_PIN);
-
 RgbColor red(colorSaturation, 0, 0);
 RgbColor green(0, colorSaturation, 0);
 RgbColor blue(0, 0, colorSaturation);
 RgbColor white(colorSaturation);
 RgbColor black(0);
-
 #endif
 
 TInfo tinfo; // Teleinfo object
@@ -48,11 +45,6 @@ TInfo tinfo; // Teleinfo object
 unsigned long blinkLed  = 0;
 uint16_t blinkDelay= 0;
 
-// Uptime timer
-boolean tick1sec=0;// one for interrupt, don't mess with 
-unsigned long uptime=0; // save value we can use in sketch even if we're interrupted
-
- 
 /* ======================================================================
 Function: ADPSCallback 
 Purpose : called by library when we detected a ADPS on any phased
@@ -76,7 +68,7 @@ void ADPSCallback(uint8_t phase)
   #ifdef RGB_LED_PIN
   strip.SetPixelColor(0, red);
   // Keep it RED between all frame until it disapears
-  blinkDelay = 2500; // 2.5s
+  blinkDelay = 2500; // 2.5s should be enough
   strip.Show();
   blinkLed = millis();
   #endif
@@ -94,18 +86,22 @@ void DataCallback(ValueList * me, uint8_t  flags)
 {
   RgbColor col(0, 0, colorSaturation);
 
+  // Nouvelle etiquette ?
   if (flags & TINFO_FLAGS_ADDED) {
     SerialMon.print(F("NEW -> "));
     #ifdef RGB_LED_PIN
     strip.SetPixelColor(0, green);
+    strip.Show();
     blinkDelay = 10; // 10ms  
-    #endif
+  #endif
   }
 
+  // Valeur de l'étiquette qui a changée ?
   if (flags & TINFO_FLAGS_UPDATED) {
     SerialMon.print(F("MAJ -> "));
     #ifdef RGB_LED_PIN
     strip.SetPixelColor(0, blue);
+    strip.Show();
     blinkDelay = 50; // 50ms  
     #endif
   }
@@ -115,10 +111,7 @@ void DataCallback(ValueList * me, uint8_t  flags)
   SerialMon.print("=");
   SerialMon.println(me->value);
 
-  #ifdef RGB_LED_PIN
-  strip.Show();
   blinkLed = millis();
-  #endif
 
 }
 
@@ -179,12 +172,6 @@ void loop()
   static unsigned long previousMillis = 0;
   unsigned long currentMillis = millis();
 
-  // Avons nous recu un ticker de seconde?
-  if (tick1sec) {
-    tick1sec = false;
-    uptime++;
-  }
-  
   // On a reçu un caractère ?
   if ( Serial.available() ) {
     // Le lire
@@ -194,9 +181,9 @@ void loop()
     tinfo.process(c);
 
     // L'affcher dans la console
-    if (c!=TINFO_STX && c!=TINFO_ETX) {
+    //if (c!=TINFO_STX && c!=TINFO_ETX) {
       //SerialMon.print(c);
-    }
+    //}
   }
 
   // Verifier si le clignotement LED doit s'arreter 
@@ -208,12 +195,6 @@ void loop()
     #endif
 
     blinkLed = 0;
-  }
-
-  if (currentMillis - previousMillis > 1000 ) {
-    // save the last time you blinked the LED 
-    previousMillis = currentMillis;   
-    tick1sec = true;
   }
 }
 
