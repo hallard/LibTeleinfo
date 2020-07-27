@@ -106,7 +106,7 @@ enum _State_e {
 
 // Local buffer for one line of teleinfo 
 // maximum size, I think it should be enought
-#define TINFO_BUFSIZE  64
+#define TINFO_BUFSIZE  128
 
 // Teleinfo start and end of frame characters
 #define TINFO_STX 0x02
