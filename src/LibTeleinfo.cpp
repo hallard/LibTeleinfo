@@ -14,6 +14,8 @@
 // Written by Charles-Henri Hallard (http://hallard.me)
 //
 // History : V1.00 2015-06-14 - First release
+//           V2.00 2020-06-11 - Integration into Tasmota
+//           V2.01 2020-08-11 - Merged LibTeleinfo official and Tasmota version
 //
 // All text above must be included in any redistribution.
 //
@@ -21,6 +23,7 @@
 //
 // **********************************************************************************
 
+#include "Arduino.h"
 #include "LibTeleinfo.h" 
 
 /* ======================================================================
@@ -47,7 +50,7 @@ TInfo::TInfo()
 
 /* ======================================================================
 Function: init
-Purpose : configure ULPNode I/O ports 
+Purpose : try to guess 
 Input   : -
 Output  : -
 Comments: - 
@@ -210,8 +213,7 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
         me = me->next;
 
         // Check if we already have this LABEL (same name AND same size)
-        if (lgname==strlen(me->name) && strcmp(me->name, name )==0) {
-
+        if (lgname==strlen(me->name) && strcmp(me->name, name)==0) {
           // Already got also this value  return US
           if (lgvalue==strlen(me->value) && strcmp(me->value, value) == 0) {
             *flags |= TINFO_FLAGS_EXIST;
@@ -224,7 +226,7 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
             // Do we have enought space to hold new value ?
             if (strlen(me->value) >= lgvalue ) {
               // Copy it
-              strlcpy(me->value, value , lgvalue + 1);
+              strlcpy(me->value, value , lgvalue + 1 );
               me->checksum = checksum ;
 
               // That's all
@@ -304,8 +306,6 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
   // Error or Already Exists
   return ( (ValueList *) NULL);
 }
-
-
 
 /* ======================================================================
 Function: valueRemoveFlagged
@@ -423,6 +423,44 @@ char * TInfo::valueGet(char * name, char * value)
 
       // Check if we match this LABEL
       if (lgname==strlen(me->name) && strcmp(me->name, name)==0) {
+        // this one has a value ?
+        if (me->value) {
+          // copy to dest buffer
+          uint8_t lgvalue = strlen(me->value);
+          strlcpy(value, me->value , lgvalue + 1 );
+          return ( value );
+        }
+      }
+    }
+  }
+  // not found
+  return ( NULL);
+}
+
+/* ======================================================================
+Function: valueGet_P
+Purpose : get value of one element
+Input   : Pointer to the label name
+          pointer to the value where we fill data 
+Output  : pointer to the value where we filled data NULL is not found
+====================================================================== */
+char * TInfo::valueGet_P(const char * name, char * value)
+{
+  // Get our linked list 
+  ValueList * me = &_valueslist;
+  uint8_t lgname = strlen_P(name);
+
+  // Got one and all seems good ?
+  if (me && lgname) {
+
+    // Loop thru the node
+    while (me->next) {
+
+      // go to next node
+      me = me->next;
+
+      // Check if we match this LABEL
+      if (lgname==strlen(me->name) && strcmp_P(me->name, name)==0) {
         // this one has a value ?
         if (me->value) {
           // copy to dest buffer

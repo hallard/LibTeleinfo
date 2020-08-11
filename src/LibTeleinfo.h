@@ -14,6 +14,8 @@
 // Written by Charles-Henri Hallard (http://hallard.me)
 //
 // History : V1.00 2015-06-14 - First release
+//           V2.00 2020-06-11 - Integration into Tasmota
+//           V2.01 2020-08-11 - Merged LibTeleinfo official and Tasmota version
 //
 // All text above must be included in any redistribution.
 //
@@ -36,12 +38,6 @@
 #include <Arduino.h>
 #endif
 
-// Using ESP8266 ?
-#ifdef ESP8266
-#include <ESP8266WiFi.h>
-#endif
-
-
 // Define this if you want library to be verbose
 //#define TI_DEBUG
 
@@ -61,15 +57,15 @@
     #define TI_Debugflush  Serial.flush
   #endif
 #else
-  #define TI_Debug(x)    
-  #define TI_Debugln(x)  
-  #define TI_Debugf(...) 
-  #define TI_Debugflush  
+  #define TI_Debug(x)    {}
+  #define TI_Debugln(x)  {}
+  #define TI_Debugf(...) {}
+  #define TI_Debugflush  {}
 #endif
 
+// For 4 bytes Aligment boundaries
 #if defined (ESP8266) || defined (ESP32)
-  // For 4 bytes Aligment boundaries
-  #define ESP_allocAlign(size)  ((size + 3) & ~((size_t) 3))
+#define ESP_allocAlign(size)  ((size + 3) & ~((size_t) 3))
 #endif
 
 #pragma pack(push)  // push current alignment to stack
@@ -80,13 +76,14 @@ typedef struct _ValueList ValueList;
 struct _ValueList 
 {
   ValueList *next; // next element
-  char  * name;    // LABEL of value name
-  char  * value;   // value 
   uint8_t checksum;// checksum
   uint8_t flags;   // specific flags
+  char  * name;    // LABEL of value name
+  char  * value;   // value 
 };
 
 #pragma pack(pop)
+
 
 // Library state machine
 enum _State_e {
@@ -114,6 +111,11 @@ enum _State_e {
 #define TINFO_SGR '\n' // start of group  
 #define TINFO_EGR '\r' // End of group    
 
+typedef void (*_fn_ADPS) (uint8_t);
+typedef void (*_fn_data) (ValueList *, uint8_t);
+typedef void (*_fn_new_frame) (ValueList *);
+typedef void (*_fn_updated_frame) (ValueList *);
+
 class TInfo
 {
   public:
@@ -128,6 +130,7 @@ class TInfo
     ValueList *   getList(void);
     uint8_t       valuesDump(void);
     char *        valueGet(char * name, char * value);
+    char *        valueGet_P(const char * name, char * value);
     boolean       listDelete();
     unsigned char calcChecksum(char *etiquette, char *valeur) ;
 
