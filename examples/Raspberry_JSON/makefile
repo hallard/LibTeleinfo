@@ -6,8 +6,8 @@ CFLAGS=-DRASPBERRY_PI
 all: raspjson
 
 # ===== Compile
-LibTeleinfo.o: ../../LibTeleinfo.cpp
-	$(CC) $(CFLAGS)  -c ../../LibTeleinfo.cpp
+LibTeleinfo.o: ../../src/LibTeleinfo.cpp
+	$(CC) $(CFLAGS)  -c ../../src/LibTeleinfo.cpp
   
 raspjson.o: raspjson.cpp
 	$(CC) $(CFLAGS)  -c raspjson.cpp
