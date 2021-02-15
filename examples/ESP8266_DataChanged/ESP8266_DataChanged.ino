@@ -84,7 +84,9 @@ Comments: -
 ====================================================================== */
 void DataCallback(ValueList * me, uint8_t  flags)
 {
+  #ifdef RGB_LED_PIN
   RgbColor col(0, 0, colorSaturation);
+  #endif
 
   // Nouvelle etiquette ?
   if (flags & TINFO_FLAGS_ADDED) {
