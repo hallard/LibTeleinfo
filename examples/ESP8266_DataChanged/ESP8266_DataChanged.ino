@@ -170,14 +170,10 @@ Comments: -
 ====================================================================== */
 void loop()
 {
-  static char c;
-  static unsigned long previousMillis = 0;
-  unsigned long currentMillis = millis();
-
   // On a reçu un caractère ?
   if ( Serial.available() ) {
     // Le lire
-    c = Serial.read();
+    char c = Serial.read();
 
     // Gérer
     tinfo.process(c);
