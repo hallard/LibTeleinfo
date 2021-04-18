@@ -57,7 +57,7 @@ uint8_t ledArray[3] = {1, 2, 3};
 
 // Pour clignotement LED asynchrone
 unsigned long blinkLed  = 0;
-uint8_t blinkDelay= 0;
+int blinkDelay= 0;
 
 // Uptime timer
 boolean tick1sec=0;// one for interrupt, don't mess with 
