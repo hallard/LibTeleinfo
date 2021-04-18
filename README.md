@@ -3,9 +3,9 @@ Teleinfo (Aka TIC) Universal Library
 
 This is a generic Teleinfo French Meter Measure Library, it can be used on Arduino like device and also such as Spark Core, Particle, ESP8266, Raspberry PI or anywhere you can do Cpp code ...
 
-You can see Teleinformation official french datasheet [there][1]
+You can see Teleinformation official french datasheet [there][1].
 
-Since this is really dedicated to French energy measuring system, I will continue in French
+Since this is really dedicated to French energy measuring system, I will continue in French.
 
 Installation
 ============
@@ -49,7 +49,7 @@ Divers
 ======
 Vous pouvez aller voir les nouveautés et autres projets sur [blog][7] 
 
-[1]: http://www.erdf.fr/sites/default/files/ERDF-NOI-CPT_02E.pdf
+[1]: https://www.enedis.fr/sites/default/files/Enedis-NOI-CPT_02E.pdf
 [2]: http://learn.adafruit.com/arduino-tips-tricks-and-techniques/arduino-libraries
 [6]: https://hallard.me/category/tinfo/
 [7]: https://hallard.me
