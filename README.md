@@ -33,6 +33,7 @@ Sketch d'exemples
 - [Wifinfo][5] ESP8266, ESP32 Wifi Teleinformation, Web + Rest + bonus, version en cours de développement, à venir mais un article [dédié][13] est déjà présent sur mon blog
 - [ESP32][14] ESP32 Basic test pour WifInfo32 nouveau nom Denky :-)
 - [ESP8266_DataChanged][15] ESP8266 Surveille et affiche les données changées entre 2 trames, clignote la LED RGB en fonction
+- [Teleinfo_DenkyD4][16] ESP32 Denky D4 Basic test pour le nouveau Denky D4 basé sur l'ESP32-Pico-V3-02
 
 Pourquoi
 ========
@@ -64,4 +65,5 @@ Vous pouvez aller voir les nouveautés et autres projets sur [blog][7]
 [13]: https://hallard.me/wifiinfo/
 [14]: https://github.com/hallard/LibTeleinfo/blob/master/examples/ESP32/ESP32.ino
 [15]: https://github.com/hallard/LibTeleinfo/blob/master/examples/ESP8266_DataChanged/ESP8266_DataChanged.ino
+[16]: https://github.com/hallard/LibTeleinfo/blob/master/examples/Teleinfo_DenkyD4/Teleinfo_DenkyD4.ino
 
