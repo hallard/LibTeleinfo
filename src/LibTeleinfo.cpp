@@ -16,6 +16,7 @@
 // History : V1.00 2015-06-14 - First release
 //           V2.00 2020-06-11 - Integration into Tasmota
 //           V2.01 2020-08-11 - Merged LibTeleinfo official and Tasmota version
+//                              Added support for new standard mode of linky smart meter
 //
 // All text above must be included in any redistribution.
 //
@@ -41,6 +42,8 @@ TInfo::TInfo()
   _valueslist.checksum = '\0';
   _valueslist.flags = TINFO_FLAGS_NONE;
 
+  _separator = ' ';
+
   // callback
   _fn_ADPS = NULL;
   _fn_data = NULL;   
@@ -51,11 +54,11 @@ TInfo::TInfo()
 /* ======================================================================
 Function: init
 Purpose : try to guess 
-Input   : -
+Input   : Mode, historique ou standard
 Output  : -
 Comments: - 
 ====================================================================== */
-void TInfo::init()
+void TInfo::init(_Mode_e mode)
 {
   // free up linked list (in case on recall init())
   listDelete();
@@ -65,6 +68,13 @@ void TInfo::init()
 
   // We're in INIT in term of receive data
   _state = TINFO_INIT;
+ 
+  _mode = mode;
+  if ( _mode == TINFO_MODE_STANDARD ) {
+    _separator = TINFO_HT;
+  } else {
+    _separator = ' ';
+  } 
 }
 
 /* ======================================================================
@@ -175,34 +185,49 @@ Input   : Pointer to the label name
           pointer to the value
           checksum value
           flag state of the label (modified by function)
+          string date (teleinfo format)
 Output  : pointer to the new node (or founded one)
 Comments: - state of the label changed by the function
 ====================================================================== */
-ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t * flags)
+ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t * flags, char *horodate)
 {
   // Get our linked list 
   ValueList * me = &_valueslist;
 
   uint8_t lgname = strlen(name);
   uint8_t lgvalue = strlen(value);
-  uint8_t thischeck = calcChecksum(name,value);
+  uint8_t thischeck = calcChecksum(name,value,horodate);
   
   // just some paranoia 
   if (thischeck != checksum ) {
     TI_Debug(name);
     TI_Debug('=');
     TI_Debug(value);
+
+    if (horodate && *horodate) {
+      TI_Debug(F(" Date="));
+      TI_Debug(horodate);
+      TI_Debug(F(" "));
+    }
+
     TI_Debug(F(" '"));
     TI_Debug((char) checksum);
     TI_Debug(F("' Not added bad checksum calculated '"));
     TI_Debug((char) thischeck);
     TI_Debugln(F("'"));
+    TI_Debugf(PSTR("LibTeleinfo::valueAdd Err checksum 0x%02X != 0x%02X"), thischeck, checksum);
+
   } else  {
     // Got one and all seems good ?
     if (me && lgname && lgvalue && checksum) {
       // Create pointer on the new node
       ValueList *newNode = NULL;
       ValueList *parNode = NULL ;
+      uint32_t ts = 0;
+
+      if (horodate && *horodate) {
+        ts = horodate2Timestamp(horodate);
+      }
 
       // Loop thru the node
       while (me->next) {
@@ -214,6 +239,9 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
 
         // Check if we already have this LABEL (same name AND same size)
         if (lgname==strlen(me->name) && strcmp(me->name, name)==0) {
+          if (ts) {
+            me->ts = ts;
+          }
           // Already got also this value  return US
           if (lgvalue==strlen(me->value) && strcmp(me->value, value) == 0) {
             *flags |= TINFO_FLAGS_EXIST;
@@ -255,7 +283,7 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
         lgname = ESP_allocAlign(lgname+1);   // Align name buffer
         lgvalue = ESP_allocAlign(lgvalue+1); // Align value buffer
         // Align the whole structure
-        size = ESP_allocAlign( sizeof(ValueList) + lgname + lgvalue  )     ; 
+        size = ESP_allocAlign( sizeof(ValueList) + lgname + lgvalue  ) ; 
       #else
         size = sizeof(ValueList) + lgname + 1 + lgvalue + 1  ;
       #endif
@@ -279,6 +307,8 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
       // Copy the string data
       memcpy(newNode->name , name  , lgname );
       memcpy(newNode->value, value , lgvalue );
+      // Add timestamp 
+      newNode->ts = ts;
 
       // So we just created this node but was it new
       // or was matter of text size ?
@@ -609,12 +639,30 @@ Function: checksum
 Purpose : calculate the checksum based on data/value fields
 Input   : label name 
           label value 
+          label timestamp
 Output  : checksum
 Comments: return '\0' in case of error
+
+Group format in legacy mode (Mode Historique) - Last space not included in checksum
+LF etiquette SP donnee SP Chk CR
+0A           20        20     0D
+   \____check________/
+
+
+Group format in standard mode with timestamp (horodatage) - Last HT included in checksum
+LF etiquette HT horodatage HT donnee HT Chk CR
+0A           09            09        09     0D
+   \____________checkum_______________/
+
+Group format in standard mode without timestamp (horodatage) - Last HT included in checksum
+LF etiquette HT donnee HT Chk CR
+0A           09        09     0D
+   \_____checkum________/
+
 ====================================================================== */
-unsigned char TInfo::calcChecksum(char *etiquette, char *valeur) 
+unsigned char TInfo::calcChecksum(char *etiquette, char *valeur, char * horodate) 
 {
-    uint8_t sum = ' ';  // Somme des codes ASCII du message + un espace
+  uint8_t sum = (_mode == TINFO_MODE_HISTORIQUE) ? _separator : (2 * _separator);  // Somme des codes ASCII du message + 2 separateurs
 
   // avoid dead loop, always check all is fine 
   if (etiquette && valeur) {
@@ -625,11 +673,56 @@ unsigned char TInfo::calcChecksum(char *etiquette, char *valeur)
   
       while(*valeur)
         sum += *valeur++ ;
-        
-      return ( (sum & 63) + ' ' ) ;
+
+      if (horodate) {
+        sum += _separator;
+        while (*horodate)
+          sum += *horodate++ ;
+      }
+
+      return ( (sum & 0x3f) + ' ' ) ;
     }
   }
   return 0;
+}
+
+/* ======================================================================
+Function: horodate2Timestamp
+Purpose : convert string date from frame to timestamp
+Input   : pdate : pointer to string containing the date SAAMMJJhhmmss
+                 season, year, month, day, hour, minute, second
+Output  : unix format timestamp
+Comments: 
+====================================================================== */
+uint32_t TInfo::horodate2Timestamp( char * pdate) 
+{
+  struct tm tm;
+  time_t ts;
+  char * p ;
+
+  if (pdate==NULL || *pdate=='\0' || strlen(pdate)!=13) {
+    return 0;
+  }
+
+  p = pdate + strlen(pdate) -2;
+  tm.tm_sec  = atoi(p); *p='\0'; p-=2;
+  tm.tm_min  = atoi(p); *p='\0'; p-=2;
+  tm.tm_hour = atoi(p); *p='\0'; p-=2;
+  tm.tm_mday = atoi(p); *p='\0'; p-=2;
+  tm.tm_mon  = atoi(p); *p='\0'; p-=2;
+  tm.tm_year = atoi(p) + 2000;
+
+  tm.tm_year -= 1900;
+  tm.tm_mon -= 1;
+  tm.tm_isdst = 0;
+  ts = mktime(&tm);
+  if (ts == (time_t)-1) {
+    TI_Debug(F("Failed to convert time "));
+    TI_Debugln(pdate);
+    return 0;
+  }
+
+  return (uint32_t) ts;
 }
 
 /* ======================================================================
@@ -683,24 +776,47 @@ ValueList * TInfo::checkLine(char * pline)
   char * ptok;
   char * pend;
   char * pvalue;
+  char * pts;
   char   checksum;
   char  buff[TINFO_BUFSIZE];
   uint8_t flags  = TINFO_FLAGS_NONE;
   //boolean err = true ;  // Assume  error
   int len ; // Group len
+  int i;
+  int sep =0;
+  bool hasts = false ;  // Assume timestamp on line
 
-  if (pline==NULL)
+  if (pline==NULL) {
+    TI_Debugf(PSTR("LibTeleinfo: Error pline==NULL"));
     return NULL;
+  }
 
   len = strlen(pline); 
 
   // a line should be at least 7 Char
   // 2 Label + Space + 1 etiquette + space + checksum + \r
-  if ( len < 7 )
+  if ( len < 7 || len >= TINFO_BUFSIZE) {
+    TI_Debugf(PSTR("LibTeleinfo: Error len < 7 || len >= TINFO_BUFSIZE"));
     return NULL;
+  }
 
-  // Get our own working copy
-  strlcpy( buff, pline, len+1);
+  p = &buff[0];
+  sep = 0;
+  // Get our own working copy and in the 
+  // meantime, calculate separator count for
+  // standard mode (to know if timestamped data)
+  for (i=0 ; i<len ; i++) {
+    // count separator, take care, checksum last one can be space separator
+    if (*pline==_separator && *(pline+1)!='\r') {
+      // Label + sep + Date + sep + Etiquette + sep + Checksum 
+      if (++sep >=3){
+        hasts = true;
+      }
+    }
+    // Copy
+    *p++ = *pline++;  
+  }
+  *p = '\0';
 
   p = &buff[0];
   ptok = p;       // for sure we start with token name
@@ -708,29 +824,49 @@ ValueList * TInfo::checkLine(char * pline)
 
   // Init values
   pvalue = NULL;
+  pts = NULL;
   checksum = 0;
 
   //TI_Debug("Got [");
   //TI_Debug(len);
   //TI_Debug("] ");
-
   
   // Loop in buffer 
   while ( p < pend ) {
     // start of token value
-    if ( *p==' ' && ptok) {           
+    if ( *p==_separator && ptok) {           
       // Isolate token name
       *p++ = '\0';
 
-      // 1st space, it's the label value
-      if (!pvalue)
-        pvalue = p;
-      else
-        // 2nd space, so it's the checksum
-        checksum = *p;
+      // We have a timestamp
+      // Label + sep + Date + sep + Etiquette + sep + Checksum 
+      if (hasts) {
+        if (!pts) {
+          pts = p;
+        } else {
+          // 2nd separator, it's the label value
+          if (!pvalue) {
+            pvalue = p;
+          } else {
+            // 3rd separator so it's the checksum
+            checksum = *p;
+          }
+        }
+
+      // No timestamp
+      // Label + sep + Etiquette + sep + Checksum 
+      } else {
+        // 1st separator, it's the label value
+        if (!pvalue) {
+          pvalue = p;
+        } else {
+          // 2nd separator so it's the checksum
+          checksum = *p;
+        }
+      }
     }           
+
     // new line ? ok we got all we need ?
-    
     if ( *p=='\r' ) {           
       *p='\0';
 
@@ -739,12 +875,14 @@ ValueList * TInfo::checkLine(char * pline)
         // Always check to avoid bad behavior 
         if(strlen(ptok) && strlen(pvalue)) {
           // Is checksum is OK
-          if ( calcChecksum(ptok,pvalue) == checksum) {
+          char   calc_checksum = calcChecksum(ptok,pvalue,pts);
+          if ( calc_checksum == checksum) {
             // In case we need to do things on specific labels
             customLabel(ptok, pvalue, &flags);
 
             // Add value to linked lists of values
-            ValueList * me = valueAdd(ptok, pvalue, checksum, &flags);
+            //TI_Debugf(PSTR("LibTeleinfo: %s = %s"), ptok, pvalue);
+            ValueList * me = valueAdd(ptok, pvalue, checksum, &flags, pts);
 
             // value correctly added/changed
             if ( me ) {
@@ -758,6 +896,10 @@ ValueList * TInfo::checkLine(char * pline)
                   _fn_data(me, flags);
               }
             }
+          }
+          else
+          {
+            TI_Debugf(PSTR("LibTeleinfo::checkLine Err checksum 0x%02X != 0x%02X"), calc_checksum, checksum);
           }
         }
       }
@@ -786,6 +928,7 @@ _State_e TInfo::process(char c)
   switch (c)  {
     // start of transmission ???
     case  TINFO_STX:
+      //TI_Debugf(PSTR("LibTeleinfo: case TINFO_STX <<<<<<<<<<<<<<<<<<"));
       // Clear buffer, begin to store in it
       clearBuffer();
 
@@ -802,6 +945,7 @@ _State_e TInfo::process(char c)
       
     // End of transmission ?
     case  TINFO_ETX:
+      TI_Debugln(F("TINFO_GOT_STX"));
 
       // Normal working mode ?
       if (_state == TINFO_READY) {
@@ -828,11 +972,11 @@ _State_e TInfo::process(char c)
       if (_state == TINFO_WAIT_ETX) {
         TI_Debugln(F("TINFO_READY"));
         _state = TINFO_READY;
-      } 
+      }
       else if ( _state == TINFO_INIT) {
         TI_Debugln(F("TINFO_WAIT_STX"));
         _state = TINFO_WAIT_STX ;
-      } 
+      }
 
     break;
 
@@ -840,10 +984,13 @@ _State_e TInfo::process(char c)
     case  TINFO_SGR:
       // Do nothing we'll work at end of group
       // we can safely ignore this char
+      //TI_Debugf(PSTR("LibTeleinfo: case TINFO_SGR _recv_idx=%d"), _recv_idx);
     break;
 
     // End of group \r ?
     case  TINFO_EGR:
+      //TI_Debugf(PSTR("LibTeleinfo: case TINFO_EGR _recv_idx=%d"), _recv_idx);
+
       // Are we ready to process ?
       if (_state == TINFO_READY) {
         // Store data recceived (we'll need it)
@@ -854,13 +1001,14 @@ _State_e TInfo::process(char c)
         memset(&_recv_buff[_recv_idx], 0, TINFO_BUFSIZE-_recv_idx);
 
         // check the group we've just received
+        //TI_Debugf(PSTR("LibTeleinfo: Group received %d bytes %s"), _recv_idx, _recv_buff);
         checkLine(_recv_buff) ;
 
         // Whatever error or not, we done
         clearBuffer();
       }
     break;
-    
+
     // other char ?
     default:
     {
@@ -869,8 +1017,10 @@ _State_e TInfo::process(char c)
         // If buffer is not full, Store data 
         if ( _recv_idx < TINFO_BUFSIZE)
           _recv_buff[_recv_idx++]=c;
-        else
+        else {
+          TI_Debugf(PSTR("LibTeleinfo: _recv_idx = %d/%d buffer overflow"), _recv_idx, TINFO_BUFSIZE);
           clearBuffer();
+       }
       }
     }
     break;

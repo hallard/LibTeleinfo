@@ -16,6 +16,7 @@
 // History : V1.00 2015-06-14 - First release
 //           V2.00 2020-06-11 - Integration into Tasmota
 //           V2.01 2020-08-11 - Merged LibTeleinfo official and Tasmota version
+//                              Added support for new standard mode of linky smart meter
 //
 // All text above must be included in any redistribution.
 //
@@ -31,18 +32,19 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#define boolean bool 
+#define boolean bool
 #endif
 
 #ifdef ARDUINO
 #include <Arduino.h>
+#include <time.h>       /* struct tm */
 #endif
 
 // Define this if you want library to be verbose
 //#define TI_DEBUG
 
 // I prefix debug macro to be sure to use specific for THIS library
-// debugging, this should not interfere with main sketch or other 
+// debugging, this should not interfere with main sketch or other
 // libraries
 #ifdef TI_DEBUG
   #ifdef ESP8266
@@ -73,17 +75,23 @@
 
 // Linked list structure containing all values received
 typedef struct _ValueList ValueList;
-struct _ValueList 
+struct _ValueList
 {
   ValueList *next; // next element
+  time_t  ts;      // TimeStamp of data if any
   uint8_t checksum;// checksum
   uint8_t flags;   // specific flags
   char  * name;    // LABEL of value name
-  char  * value;   // value 
+  char  * value;   // value
 };
 
 #pragma pack(pop)
 
+// Library state machine
+enum _Mode_e {
+  TINFO_MODE_HISTORIQUE,  // Legacy mode (1200)
+  TINFO_MODE_STANDARD     // Standard mode (9600)
+};
 
 // Library state machine
 enum _State_e {
@@ -101,15 +109,16 @@ enum _State_e {
 #define TINFO_FLAGS_UPDATED  0x08
 #define TINFO_FLAGS_ALERT    0x80 /* This will generate an alert */
 
-// Local buffer for one line of teleinfo 
-// maximum size, I think it should be enought
-#define TINFO_BUFSIZE  64
+// Local buffer for one line of teleinfo
+// maximum size for Standard
+#define TINFO_BUFSIZE  128
 
 // Teleinfo start and end of frame characters
 #define TINFO_STX 0x02
-#define TINFO_ETX 0x03 
-#define TINFO_SGR '\n' // start of group  
-#define TINFO_EGR '\r' // End of group    
+#define TINFO_ETX 0x03
+#define TINFO_HT  0x09
+#define TINFO_SGR '\n' // start of group
+#define TINFO_EGR '\r' // End of group
 
 typedef void (*_fn_ADPS) (uint8_t);
 typedef void (*_fn_data) (ValueList *, uint8_t);
@@ -120,32 +129,35 @@ class TInfo
 {
   public:
     TInfo();
-    void          init();
+    void          init(_Mode_e mode = TINFO_MODE_HISTORIQUE); 
     _State_e      process (char c);
-    void          attachADPS(void (*_fn_ADPS)(uint8_t phase));  
-    void          attachData(void (*_fn_data)(ValueList * valueslist, uint8_t state));  
-    void          attachNewFrame(void (*_fn_new_frame)(ValueList * valueslist));  
-    void          attachUpdatedFrame(void (*_fn_updated_frame)(ValueList * valueslist));  
+    void          attachADPS(void (*_fn_ADPS)(uint8_t phase));
+    void          attachData(void (*_fn_data)(ValueList * valueslist, uint8_t state));
+    void          attachNewFrame(void (*_fn_new_frame)(ValueList * valueslist));
+    void          attachUpdatedFrame(void (*_fn_updated_frame)(ValueList * valueslist));
     ValueList *   addCustomValue(char * name, char * value, uint8_t * flags);
     ValueList *   getList(void);
     uint8_t       valuesDump(void);
     char *        valueGet(char * name, char * value);
     char *        valueGet_P(const char * name, char * value);
     boolean       listDelete();
-    unsigned char calcChecksum(char *etiquette, char *valeur) ;
+    unsigned char calcChecksum(char *etiquette, char *valeur, char *horodate=NULL) ;
 
   private:
     void          clearBuffer();
-    ValueList *   valueAdd (char * name, char * value, uint8_t checksum, uint8_t * flags);
+    ValueList *   valueAdd (char * name, char * value, uint8_t checksum, uint8_t * flags, char * horodate=NULL);
     boolean       valueRemove (char * name);
     boolean       valueRemoveFlagged(uint8_t flags);
     int           labelCount();
+    uint32_t      horodate2Timestamp( char * pdate) ;
     void          customLabel( char * plabel, char * pvalue, uint8_t * pflags) ;
     ValueList *   checkLine(char * pline) ;
 
+    _Mode_e   _mode; // Teleinfo mode (legacy/historique vs standard)
     _State_e  _state; // Teleinfo machine state
     ValueList _valueslist;   // Linked list of teleinfo values
     char      _recv_buff[TINFO_BUFSIZE]; // line receive buffer
+    char      _separator;
     uint8_t   _recv_idx;  // index in receive buffer
     boolean   _frame_updated; // Data on the frame has been updated
     void      (*_fn_ADPS)(uint8_t phase);
