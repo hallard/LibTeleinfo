@@ -25,7 +25,7 @@
 #define RGB_LED_PIN 0 // GPIO0
 
 // Output Debug on Serial1 since Hardware Serial is used to receive Teleinfo
-#define SerialMon Serial1 
+#define SerialMon Serial1
 
 #ifdef RGB_LED_PIN
 #include <NeoPixelBus.h>
@@ -46,14 +46,14 @@ unsigned long blinkLed  = 0;
 uint16_t blinkDelay= 0;
 
 /* ======================================================================
-Function: ADPSCallback 
+Function: ADPSCallback
 Purpose : called by library when we detected a ADPS on any phased
-Input   : phase number 
+Input   : phase number
             0 for ADPS (monophase)
             1 for ADIR1 triphase
             2 for ADIR2 triphase
             3 for ADIR3 triphase
-Output  : - 
+Output  : -
 Comments: should have been initialised in the main sketch with a
           tinfo.attachADPSCallback(ADPSCallback())
 ====================================================================== */
@@ -75,16 +75,18 @@ void ADPSCallback(uint8_t phase)
 }
 
 /* ======================================================================
-Function: DataCallback 
+Function: DataCallback
 Purpose : callback when we detected new or modified data received
 Input   : linked list pointer on the concerned data
           current flags value
-Output  : - 
+Output  : -
 Comments: -
 ====================================================================== */
 void DataCallback(ValueList * me, uint8_t  flags)
 {
+  #ifdef RGB_LED_PIN
   RgbColor col(0, 0, colorSaturation);
+  #endif
 
   // Nouvelle etiquette ?
   if (flags & TINFO_FLAGS_ADDED) {
@@ -92,8 +94,8 @@ void DataCallback(ValueList * me, uint8_t  flags)
     #ifdef RGB_LED_PIN
     strip.SetPixelColor(0, green);
     strip.Show();
-    blinkDelay = 10; // 10ms  
-  #endif
+    blinkDelay = 10; // 10ms
+    #endif
   }
 
   // Valeur de l'étiquette qui a changée ?
@@ -102,7 +104,7 @@ void DataCallback(ValueList * me, uint8_t  flags)
     #ifdef RGB_LED_PIN
     strip.SetPixelColor(0, blue);
     strip.Show();
-    blinkDelay = 50; // 50ms  
+    blinkDelay = 50; // 50ms
     #endif
   }
 
@@ -119,7 +121,7 @@ void DataCallback(ValueList * me, uint8_t  flags)
 Function: setup
 Purpose : Setup I/O and other one time startup stuff
 Input   : -
-Output  : - 
+Output  : -
 Comments: -
 ====================================================================== */
 void setup()
@@ -141,9 +143,9 @@ void setup()
   blinkDelay = 500; // 500ms
   #endif
 
-  // Configure Teleinfo Soft serial 
+  // Configure Teleinfo Soft serial
   // La téléinfo est connectee sur D3
-  // ceci permet d'eviter les conflits avec la 
+  // ceci permet d'eviter les conflits avec la
   // vraie serial lors des uploads
   Serial.begin(1200, SERIAL_7E1);
 
@@ -163,19 +165,15 @@ void setup()
 Function: loop
 Purpose : infinite loop main code
 Input   : -
-Output  : - 
+Output  : -
 Comments: -
 ====================================================================== */
 void loop()
 {
-  static char c;
-  static unsigned long previousMillis = 0;
-  unsigned long currentMillis = millis();
-
   // On a reçu un caractère ?
   if ( Serial.available() ) {
     // Le lire
-    c = Serial.read();
+    char c = Serial.read();
 
     // Gérer
     tinfo.process(c);
@@ -186,7 +184,7 @@ void loop()
     //}
   }
 
-  // Verifier si le clignotement LED doit s'arreter 
+  // Verifier si le clignotement LED doit s'arreter
   if (blinkLed && ((millis()-blinkLed) >= blinkDelay))  {
 
     #ifdef RGB_LED_PIN
