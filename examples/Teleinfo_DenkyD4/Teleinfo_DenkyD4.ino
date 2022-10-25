@@ -18,42 +18,52 @@
 //
 // History : V1.00 2015-06-14 - First release
 //           V1.01 2021-04-18 - Refactored for Denky D4 standalone test only
+//           V1.02 2022-10-25 - Use bew Denky D4 WS2812 LED
 //
 // All text above must be included in any redistribution.
 //
 // **********************************************************************************
 #include <LibTeleinfo.h>
+#include <NeoPixelBrightnessBus.h> 
 
 #define SERIAL_DEBUG  Serial
 #define SERIAL_TIC    Serial1
 
-#define PUSH_BUTTON 0
 // RGB Led Pins
-#define LED_RED_PIN 27
-#define LED_GRN_PIN 26
-#define LED_BLU_PIN 25
-// RGB Led Channels
-#define LED_RED_CHAN 1
-#define LED_GRN_CHAN 2
-#define LED_BLU_CHAN 2
+#define NEOPIXEL_DATA 14
+#define NEOPIXEL_LEDS 1
+
+#define PUSH_BUTTON 0
 
 // Teleinfo RXD pin is connected to ESP32-PICO-V3-02 GPIO8
 #define TIC_RX_PIN  8   
+
+#define COLOR_BLACK     RgbColor(0x00, 0x00, 0x00)
+#define COLOR_RED       RgbColor(0xFF, 0x00, 0x00)
+#define COLOR_ORANGE    RgbColor(0xFF, 0x22, 0x00)
+#define COLOR_YELLOW    RgbColor(0xFF, 0xAA, 0x00)
+#define COLOR_GREEN     RgbColor(0x00, 0xFF, 0x00)
+#define COLOR_CYAN      RgbColor(0x00, 0xFF, 0xFF)
+#define COLOR_BLUE      RgbColor(0x00, 0x00, 0xFF)
+#define COLOR_VIOLET    RgbColor(0x99, 0x00, 0xFF)
+#define COLOR_MAGENTA   RgbColor(0xFF, 0x00, 0x33)
+#define COLOR_PINK      RgbColor(0xFF, 0x33, 0x77)
+#define COLOR_AQUA      RgbColor(0x55, 0x7D, 0xFF)
+#define COLOR_WHITE     RgbColor(0xFF, 0xFF, 0xFF)
 
 // Led is common anode so reversed, this means
 // 0   = Full brightness
 // 255 = Minimal brightness
 // 256 = OFF
-uint8_t rgb_brightness = 128;
+uint8_t rgb_brightness = 255;
+
+NeoPixelBrightnessBus<NeoGrbFeature, NeoEsp32Rmt0Ws2812xMethod> strip( NEOPIXEL_LEDS, NEOPIXEL_DATA);
 
 // Default mode, can be switched back and forth 
 // with Denky D4 push button
 _Mode_e tinfo_mode = TINFO_MODE_HISTORIQUE; 
 
 TInfo tinfo; // Teleinfo object
-
-// three led channels
-uint8_t ledArray[3] = {1, 2, 3}; 
 
 // Pour clignotement LED asynchrone
 unsigned long blinkLed  = 0;
@@ -103,7 +113,8 @@ Comments: -
 void NewFrame(ValueList * me)
 {
   // Start short led blink
-  ledcWrite(LED_RED_CHAN, rgb_brightness);
+  strip.SetPixelColor(0, COLOR_RED);
+  strip.Show();
   blinkLed = millis();
   blinkDelay = 50; // 50ms
 
@@ -125,7 +136,8 @@ Comments: it's called only if one data in the frame is different than
 void UpdatedFrame(ValueList * me)
 {
   // Start long led blink
-  ledcWrite(LED_BLU_CHAN, rgb_brightness);
+  strip.SetPixelColor(0, COLOR_BLUE);
+  strip.Show();
 
   blinkLed = millis();
   blinkDelay = 50; // 50ms
@@ -150,6 +162,7 @@ void sendJSON(ValueList * me, boolean all)
   // Got at least one ?
   if (me) {
     // Json start
+    SERIAL_DEBUG.println();
     SERIAL_DEBUG.print(F("{"));
 
     if (all) {
@@ -240,9 +253,8 @@ Comments: -
 ====================================================================== */
 void ledOff() {
   // Can be one of the 2 option
-  ledcWrite(LED_RED_CHAN, 256);
-  ledcWrite(LED_GRN_CHAN, 256);
-  ledcWrite(LED_BLU_CHAN, 256);
+  strip.SetPixelColor(0, COLOR_BLACK);
+  strip.Show();
 }
 
 /* ======================================================================
@@ -254,25 +266,18 @@ Comments: -
 ====================================================================== */
 void setup()
 {
-
-  ledcAttachPin(LED_RED_PIN, LED_RED_CHAN); // assign RGB led pins to channels
-  ledcAttachPin(LED_GRN_PIN, LED_GRN_CHAN);
-  ledcAttachPin(LED_BLU_PIN, LED_BLU_CHAN);
+  strip.SetBrightness(rgb_brightness);
+  strip.Begin();
+  strip.SetPixelColor(0, COLOR_RED);
+  strip.Show();
   
-  // Initialize channels 
-  // channels 0-15, resolution 1-16 bits, freq limits depend on resolution
-  // ledcSetup(uint8_t channel, uint32_t freq, uint8_t resolution_bits);
-  ledcSetup(LED_RED_CHAN, 12000, 8); // 12 kHz PWM, 8-bit resolution
-  ledcSetup(LED_GRN_CHAN, 12000, 8);
-  ledcSetup(LED_BLU_CHAN, 12000, 8);
-
   // Arduino LED Off
   ledOff();
 
   // Serial, pour le debug
   SERIAL_DEBUG.begin(115200);
   SERIAL_DEBUG.println(F("\r\n\r\n=============="));
-  SERIAL_DEBUG.println(F("Teleinfo"));
+  SERIAL_DEBUG.println(F("Teleinfo Denky D4"));
 
   // Button
   pinMode(PUSH_BUTTON, INPUT_PULLUP);     
@@ -330,7 +335,8 @@ void loop()
     }
 
     // Start long led blink
-    ledcWrite(LED_GRN_CHAN, rgb_brightness);
+    strip.SetPixelColor(0, COLOR_GREEN);
+    strip.Show();
     blinkLed = millis();
     blinkDelay = 100; // 100ms
 
