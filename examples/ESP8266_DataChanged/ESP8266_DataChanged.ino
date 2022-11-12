@@ -22,7 +22,7 @@
 
 #include <LibTeleinfo.h>
 
-#define RGB_LED_PIN 0 // GPIO0
+//#define RGB_LED_PIN 0 // GPIO0
 
 // Output Debug on Serial1 since Hardware Serial is used to receive Teleinfo
 #define SerialMon Serial1
