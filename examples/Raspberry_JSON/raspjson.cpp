@@ -33,7 +33,7 @@
 #include <termios.h>
 #include <getopt.h>
 #include <sys/sysinfo.h>
-#include "../../LibTeleinfo.h"
+#include "../../src/LibTeleinfo.h"
 
 // ----------------
 // Constants
