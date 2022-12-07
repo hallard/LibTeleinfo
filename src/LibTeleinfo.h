@@ -119,6 +119,7 @@ enum _State_e {
 #define TINFO_HT  0x09
 #define TINFO_SGR '\n' // start of group
 #define TINFO_EGR '\r' // End of group
+#define TINFO_EOT 0x04 // frame interrupt
 
 typedef void (*_fn_ADPS) (uint8_t);
 typedef void (*_fn_data) (ValueList *, uint8_t);
@@ -164,6 +165,11 @@ class TInfo
     void      (*_fn_data)(ValueList * valueslist, uint8_t state);
     void      (*_fn_new_frame)(ValueList * valueslist);
     void      (*_fn_updated_frame)(ValueList * valueslist);
+
+    int       badchecksum;
+    int       frameformaterror;
+    int       framesizeerror;
+    int       frameinterrupted;
 
     //volatile uint8_t *dcport;
     //uint8_t dcpinmask;

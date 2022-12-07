@@ -48,7 +48,12 @@ TInfo::TInfo()
   _fn_ADPS = NULL;
   _fn_data = NULL;   
   _fn_new_frame = NULL;   
-  _fn_updated_frame = NULL;   
+  _fn_updated_frame = NULL;
+  // error counter
+  checksumerror =0;
+  framesizeerror=0;
+  frameformaterror=0;
+  frameinterrupted=0;
 }
 
 /* ======================================================================
@@ -796,6 +801,7 @@ ValueList * TInfo::checkLine(char * pline)
   // a line should be at least 7 Char
   // 2 Label + Space + 1 etiquette + space + checksum + \r
   if ( len < 7 || len >= TINFO_BUFSIZE) {
+    framesizeerror++;
     TI_Debugf(PSTR("LibTeleinfo: Error len < 7 || len >= TINFO_BUFSIZE"));
     return NULL;
   }
@@ -899,9 +905,16 @@ ValueList * TInfo::checkLine(char * pline)
           }
           else
           {
+            checksumerror++;
+            char str_checksumerror[64];
+            uint8_t upd_flags  = TINFO_FLAGS_UPDATED;
+            itoa(checksumerror,str_checksumerror,10);
+            addCustomValue("checksumerror", str_checksumerror, &upd_flags);
             TI_Debugf(PSTR("LibTeleinfo::checkLine Err checksum 0x%02X != 0x%02X"), calc_checksum, checksum);
           }
         }
+      } else {
+           frameformaterror++;
       }
     }           
     // Next char
@@ -942,7 +955,14 @@ _State_e TInfo::process(char c)
          _state = TINFO_WAIT_ETX;
       } 
     break;
-      
+    //frame  interruption
+    case TINFO_EOT:
+        // discard incomplete frame
+        // Clear buffer, begin to store in it
+        clearBuffer();
+        frameinterrupted++;
+        _state = TINFO_WAIT_STX;
+    break;
     // End of transmission ?
     case  TINFO_ETX:
       TI_Debugln(F("TINFO_GOT_STX"));
@@ -994,8 +1014,11 @@ _State_e TInfo::process(char c)
       // Are we ready to process ?
       if (_state == TINFO_READY) {
         // Store data recceived (we'll need it)
-        if ( _recv_idx < TINFO_BUFSIZE)
-          _recv_buff[_recv_idx++]=c;
+        if ( _recv_idx < TINFO_BUFSIZE) {
+            _recv_buff[_recv_idx++]=c;
+        } else {
+            framesizeerror++;  // group is too big ( some etx missing )
+        }
 
         // clear the end of buffer (paranoia inside)
         memset(&_recv_buff[_recv_idx], 0, TINFO_BUFSIZE-_recv_idx);
