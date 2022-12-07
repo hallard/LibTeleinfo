@@ -42,6 +42,10 @@ Cette oeuvre est mise à disposition selon les termes de la Licence Creative Com
 
 Si vous êtes une entreprise et que vous souhaitez participer car vous utilisez cette librairie dans du hardware (box, automate, ...), vous pouvez toujours m'envoyer un exemplaire de votre fabrication, c'est toujours sympa de voir ce qui est fait avec ce code ;-)
 
+# Addon
+
+Ajout des compteurs d'erreurs, et du traitement du caracteres EOT d'interruption de trames
+
 # Divers
 
 Vous pouvez aller voir les nouveautés et autres projets sur [blog][7] 
