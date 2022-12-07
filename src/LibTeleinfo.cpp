@@ -906,10 +906,6 @@ ValueList * TInfo::checkLine(char * pline)
           else
           {
             checksumerror++;
-            char str_checksumerror[64];
-            uint8_t upd_flags  = TINFO_FLAGS_UPDATED;
-            itoa(checksumerror,str_checksumerror,10);
-            addCustomValue("checksumerror", str_checksumerror, &upd_flags);
             TI_Debugf(PSTR("LibTeleinfo::checkLine Err checksum 0x%02X != 0x%02X"), calc_checksum, checksum);
           }
         }

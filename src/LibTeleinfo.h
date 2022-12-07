@@ -143,6 +143,11 @@ class TInfo
     char *        valueGet_P(const char * name, char * value);
     boolean       listDelete();
     unsigned char calcChecksum(char *etiquette, char *valeur, char *horodate=NULL) ;
+    
+    int         getChecksumErrorCount() {return checksumerror;};
+    int         getFrameSizeErrorCount(){return framesizeerror;};
+    int         getFrameFormatErrorCount(){return frameformaterror;};
+    int         getFrameInterruptedCount(){return frameinterrupted;};
 
   private:
     void          clearBuffer();
@@ -166,7 +171,7 @@ class TInfo
     void      (*_fn_new_frame)(ValueList * valueslist);
     void      (*_fn_updated_frame)(ValueList * valueslist);
 
-    int       badchecksum;
+    int       checksumerror;
     int       frameformaterror;
     int       framesizeerror;
     int       frameinterrupted;
