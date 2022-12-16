@@ -144,10 +144,10 @@ class TInfo
     boolean       listDelete();
     unsigned char calcChecksum(char *etiquette, char *valeur, char *horodate=NULL) ;
     
-    int         getChecksumErrorCount() {return checksumerror;};
-    int         getFrameSizeErrorCount(){return framesizeerror;};
-    int         getFrameFormatErrorCount(){return frameformaterror;};
-    int         getFrameInterruptedCount(){return frameinterrupted;};
+    uint32_t      getChecksumErrorCount() {return checksumerror;};
+    uint32_t      getFrameSizeErrorCount(){return framesizeerror;};
+    uint32_t      getFrameFormatErrorCount(){return frameformaterror;};
+    uint32_t      getFrameInterruptedCount(){return frameinterrupted;};
 
   private:
     void          clearBuffer();
@@ -171,10 +171,10 @@ class TInfo
     void      (*_fn_new_frame)(ValueList * valueslist);
     void      (*_fn_updated_frame)(ValueList * valueslist);
 
-    int       checksumerror;
-    int       frameformaterror;
-    int       framesizeerror;
-    int       frameinterrupted;
+    uint32_t  checksumerror;
+    uint32_t  frameformaterror;
+    uint32_t  framesizeerror;
+    uint32_t  frameinterrupted;
 
     //volatile uint8_t *dcport;
     //uint8_t dcpinmask;
