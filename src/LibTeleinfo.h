@@ -119,6 +119,7 @@ enum _State_e {
 #define TINFO_HT  0x09
 #define TINFO_SGR '\n' // start of group
 #define TINFO_EGR '\r' // End of group
+#define TINFO_EOT 0x04 // frame interrupt
 
 typedef void (*_fn_ADPS) (uint8_t);
 typedef void (*_fn_data) (ValueList *, uint8_t);
@@ -142,6 +143,11 @@ class TInfo
     char *        valueGet_P(const char * name, char * value);
     boolean       listDelete();
     unsigned char calcChecksum(char *etiquette, char *valeur, char *horodate=NULL) ;
+    
+    uint32_t      getChecksumErrorCount() {return checksumerror;};
+    uint32_t      getFrameSizeErrorCount(){return framesizeerror;};
+    uint32_t      getFrameFormatErrorCount(){return frameformaterror;};
+    uint32_t      getFrameInterruptedCount(){return frameinterrupted;};
 
   private:
     void          clearBuffer();
@@ -164,6 +170,11 @@ class TInfo
     void      (*_fn_data)(ValueList * valueslist, uint8_t state);
     void      (*_fn_new_frame)(ValueList * valueslist);
     void      (*_fn_updated_frame)(ValueList * valueslist);
+
+    uint32_t  checksumerror;
+    uint32_t  frameformaterror;
+    uint32_t  framesizeerror;
+    uint32_t  frameinterrupted;
 
     //volatile uint8_t *dcport;
     //uint8_t dcpinmask;
