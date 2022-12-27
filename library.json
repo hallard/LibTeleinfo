@@ -10,7 +10,8 @@
   },
   "authors":
   {
-    "name": "François-Régis Colin"
+    "name": "Charles-Henri Hallard",
+    "url": "http://hallard.me"
   },
   "frameworks": "arduino",
   "platforms": "*"  
