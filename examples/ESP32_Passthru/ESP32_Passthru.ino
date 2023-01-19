@@ -71,6 +71,26 @@ int blinkDelay= 0;
 boolean tick1sec=0;// one for interrupt, don't mess with 
 unsigned long uptime=0; // save value we can use in sketch even if we're interrupted
 
+
+/* ======================================================================
+Function: ShowStats
+Purpose : display teleinfo stats
+Input   : -
+Output  : - 
+Comments: -
+====================================================================== */
+void ShowStats()
+{
+  SERIAL_DEBUG.println(F("\r\n======= Errors ======="));
+  SERIAL_DEBUG.printf_P(PSTR("Checksum     : %d\r\n"), tinfo.getChecksumErrorCount());
+  SERIAL_DEBUG.printf_P(PSTR("Frame Size   : %d\r\n"), tinfo.getFrameSizeErrorCount());
+  SERIAL_DEBUG.printf_P(PSTR("Frame Format : %d\r\n"), tinfo.getFrameFormatErrorCount());
+  SERIAL_DEBUG.printf_P(PSTR("Interrupts   : %d\r\n"), tinfo.getFrameInterruptedCount());
+  SERIAL_DEBUG.println(    F("======================"));
+
+}
+
+
 /* ======================================================================
 Function: NewFrame 
 Purpose : callback when we received a complete teleinfo frame
@@ -85,6 +105,7 @@ void NewFrame(ValueList * me)
   strip.Show();
   blinkLed = millis();
   blinkDelay = 200; // 200ms
+  ShowStats();
 }
 
 /* ======================================================================
@@ -102,6 +123,7 @@ void UpdatedFrame(ValueList * me)
   strip.Show();
   blinkLed = millis();
   blinkDelay = 200; // 200ms
+  ShowStats();
 }
 
 /* ======================================================================
@@ -258,6 +280,8 @@ void loop()
       SERIAL_DEBUG.print("<ETX>");
     } else if (c==TINFO_HT) {
       SERIAL_DEBUG.print("<TAB>");
+    } else if (c==TINFO_EOT) {
+      SERIAL_DEBUG.print("<INTERRUPT>");
     } else {
       SERIAL_DEBUG.print(c);
     }

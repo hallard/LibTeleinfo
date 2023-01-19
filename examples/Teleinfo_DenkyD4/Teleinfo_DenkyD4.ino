@@ -79,6 +79,24 @@ boolean fulldata = true;
 //HardwareSerial Serial1(2);  // UART1/Serial2 pins 16,17
 //HardwareSerial Serial1(1);  // UART1/Serial1 pins 9,10
 //HardwareSerial Serial1(1);  // UART1/Serial1 pins 9,10
+
+/* ======================================================================
+Function: ShowStats
+Purpose : display teleinfo stats
+Input   : -
+Output  : - 
+Comments: -
+====================================================================== */
+void ShowStats()
+{
+  SERIAL_DEBUG.println(F("\r\n======= Errors ======="));
+  SERIAL_DEBUG.printf_P(PSTR("Checksum     : %d\r\n"), tinfo.getChecksumErrorCount());
+  SERIAL_DEBUG.printf_P(PSTR("Frame Size   : %d\r\n"), tinfo.getFrameSizeErrorCount());
+  SERIAL_DEBUG.printf_P(PSTR("Frame Format : %d\r\n"), tinfo.getFrameFormatErrorCount());
+  SERIAL_DEBUG.printf_P(PSTR("Interrupts   : %d\r\n"), tinfo.getFrameInterruptedCount());
+  SERIAL_DEBUG.println(    F("======================"));
+}
+
  
 /* ======================================================================
 Function: ADPSCallback 
@@ -117,6 +135,7 @@ void NewFrame(ValueList * me)
   strip.Show();
   blinkLed = millis();
   blinkDelay = 50; // 50ms
+  ShowStats();
 
   // Envoyer les valeurs uniquement si demandé
   if (fulldata) 
@@ -141,6 +160,7 @@ void UpdatedFrame(ValueList * me)
 
   blinkLed = millis();
   blinkDelay = 50; // 50ms
+  ShowStats();
 
   // Envoyer les valeurs 
   sendJSON(me, fulldata);
@@ -378,6 +398,8 @@ void loop()
       SERIAL_DEBUG.print("<ETX>");
     } else if (c==TINFO_HT) {
       SERIAL_DEBUG.print("<TAB>");
+    } else if (c==TINFO_EOT) {
+      SERIAL_DEBUG.print("<INTERRUPT>");
     } else {
       SERIAL_DEBUG.print(c);
     }
