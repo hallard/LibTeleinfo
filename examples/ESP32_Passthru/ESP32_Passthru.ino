@@ -71,6 +71,8 @@ int blinkDelay= 0;
 boolean tick1sec=0;// one for interrupt, don't mess with 
 unsigned long uptime=0; // save value we can use in sketch even if we're interrupted
 
+// Count total frames
+uint32_t total_frames = 0;
 
 /* ======================================================================
 Function: ShowStats
@@ -81,13 +83,13 @@ Comments: -
 ====================================================================== */
 void ShowStats()
 {
-  SERIAL_DEBUG.println(F("\r\n======= Errors ======="));
-  SERIAL_DEBUG.printf_P(PSTR("Checksum     : %d\r\n"), tinfo.getChecksumErrorCount());
-  SERIAL_DEBUG.printf_P(PSTR("Frame Size   : %d\r\n"), tinfo.getFrameSizeErrorCount());
-  SERIAL_DEBUG.printf_P(PSTR("Frame Format : %d\r\n"), tinfo.getFrameFormatErrorCount());
+  SERIAL_DEBUG.println(F("\r\n======= Stats ======="));
+  SERIAL_DEBUG.printf_P(PSTR("Total Frames : %d\r\n"), total_frames);
   SERIAL_DEBUG.printf_P(PSTR("Interrupts   : %d\r\n"), tinfo.getFrameInterruptedCount());
-  SERIAL_DEBUG.println(    F("======================"));
-
+  SERIAL_DEBUG.printf_P(PSTR("Checksum Err : %d\r\n"), tinfo.getChecksumErrorCount());
+  SERIAL_DEBUG.printf_P(PSTR("Size Err     : %d\r\n"), tinfo.getFrameSizeErrorCount());
+  SERIAL_DEBUG.printf_P(PSTR("Format Err   : %d\r\n"), tinfo.getFrameFormatErrorCount());
+  SERIAL_DEBUG.println(    F("====================="));
 }
 
 
@@ -105,7 +107,11 @@ void NewFrame(ValueList * me)
   strip.Show();
   blinkLed = millis();
   blinkDelay = 200; // 200ms
-  ShowStats();
+  total_frames++;
+  // Display stat info on each 2 frames
+  if (total_frames % 2 == 0) {
+    ShowStats();
+  }
 }
 
 /* ======================================================================
@@ -217,6 +223,7 @@ void loop()
   static unsigned long previousMillis = 0;
   static uint8_t buttonState = 0;
   static unsigned long lastDebounceTime = 0;  
+  _State_e state;
 
   unsigned long currentMillis = millis();
 
@@ -271,7 +278,7 @@ void loop()
     c = SERIAL_TIC.read();
 
     // Gérer
-    tinfo.process(c);
+    state = tinfo.process(c);
 
     // L'affcher dans la console
     if (c==TINFO_STX) {
@@ -283,7 +290,10 @@ void loop()
     } else if (c==TINFO_EOT) {
       SERIAL_DEBUG.print("<INTERRUPT>");
     } else {
-      SERIAL_DEBUG.print(c);
+      // Display only when receiving state OK
+      if (state == TINFO_READY) {
+        SERIAL_DEBUG.print(c);
+      }
     }
   }
 
