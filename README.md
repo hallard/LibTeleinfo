@@ -28,9 +28,10 @@ Pour les commentaires et le support vous pouvez allez sur le [forum][8] dédié 
 - [Raspberry_JSON][12] Retourne les informations de téléinformation au format JSON sur stdout.
 - [Wifinfo][5] ESP8266, ESP32 Wifi Teleinformation, Web + Rest + bonus, version en cours de développement, à venir mais un article [dédié][13] est déjà présent sur mon blog
 - [ESP32][14] ESP32 Basic test pour WifInfo32 nouveau nom Denky :-)
-- [ESP32_Passthru][14] ESP32 PassThru Basic test pour Denky D4, affiche les données de la téléinfo dans la console série
+- [ESP32_Passthru][14] ESP32 PassThru Basic test pour Denky D4, affiche les données et les stats de la téléinfo dans la console série
 - [ESP8266_DataChanged][15] ESP8266 Surveille et affiche les données changées entre 2 trames, clignote la LED RGB en fonction
-- [Teleinfo_DenkyD4][16] ESP32 Denky D4 Basic test pour le nouveau Denky D4 basé sur l'ESP32-Pico-V3-02
+- [Teleinfo_DenkyD4][16] ESP32 Denky D4 Basic test et stats pour le nouveau Denky D4 basé sur l'ESP32-Pico-V3-02
+- [Teleinfo_Stats][18] ESP32 Programme de test et statistiques pour la qualité de réception
 
 # Pourquoi
 
@@ -69,5 +70,6 @@ Vous pouvez aller voir les nouveautés et autres projets sur [blog][7]
 [15]: https://github.com/hallard/LibTeleinfo/blob/master/examples/ESP8266_DataChanged/ESP8266_DataChanged.ino
 [16]: https://github.com/hallard/LibTeleinfo/blob/master/examples/Teleinfo_DenkyD4/Teleinfo_DenkyD4.ino
 [17]: https://github.com/hallard/LibTeleinfo/blob/master/examples/ESP32_Passthru/ESP32_Passthru.ino
+[18]: https://github.com/hallard/LibTeleinfo/blob/master/examples/Teleinfo_Stats/Teleinfo_Stats.ino
 
 
