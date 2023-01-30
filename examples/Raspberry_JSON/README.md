@@ -1,14 +1,13 @@
-Teleinfo Universal Library
-==========================
+# Teleinfo Universal Library
 
 Programme d'exemple de la librairie universelle pour la téléinformation pour Raspberry Pi
 
-##Documentation
+## Documentation
 J'ai écrit un article [dédié][10] sur cette librairie, vous pouvez aussi voir les [catégories][6] associées à la téléinfo sur mon [blog][7].
 
 Pour les commentaires et le support vous pouvez allez sur le [forum][8] dédié ou dans la [communauté][9] 
 
-###Installation
+### Installation
 Se connecter en ssh sur votre Pi, il doit y avoir les environnements de développement, sinon faites un  
 
 `apt-get install build-essential git-core`
@@ -76,7 +75,7 @@ root@pi01(rw):~/LibTeleinfo/examples/Raspberry_JSON# ./raspjson -d /dev/ttyUSB0
 {"PAPP":140}
 ````
 
-##Divers
+## Divers
 Vous pouvez aller voir les nouveautés et autres projets sur [blog][7] 
 
 [6]: https://hallard.me/category/tinfo/
@@ -84,5 +83,4 @@ Vous pouvez aller voir les nouveautés et autres projets sur [blog][7]
 [8]: https://community.hallard.me/category/7
 [9]: https://community.hallard.me
 [10]: https://hallard.me/libteleinfo
-
 
