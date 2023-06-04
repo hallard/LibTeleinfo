@@ -259,7 +259,7 @@ ValueList * TInfo::valueAdd(char * name, char * value, uint8_t checksum, uint8_t
             // Do we have enought space to hold new value ?
             if (strlen(me->value) >= lgvalue ) {
               // Copy it
-              strlcpy(me->value, value , lgvalue + 1 );
+              strncpy(me->value, value , lgvalue + 1 );
               me->checksum = checksum ;
 
               // That's all
@@ -462,7 +462,7 @@ char * TInfo::valueGet(char * name, char * value)
         if (me->value) {
           // copy to dest buffer
           uint8_t lgvalue = strlen(me->value);
-          strlcpy(value, me->value , lgvalue + 1 );
+          strncpy(value, me->value , lgvalue + 1 );
           return ( value );
         }
       }
@@ -483,7 +483,7 @@ char * TInfo::valueGet_P(const char * name, char * value)
 {
   // Get our linked list 
   ValueList * me = &_valueslist;
-  uint8_t lgname = strlen_P(name);
+  uint8_t lgname = strlen(name);
 
   // Got one and all seems good ?
   if (me && lgname) {
@@ -495,12 +495,12 @@ char * TInfo::valueGet_P(const char * name, char * value)
       me = me->next;
 
       // Check if we match this LABEL
-      if (lgname==strlen(me->name) && strcmp_P(me->name, name)==0) {
+      if (lgname==strlen(me->name) && strcmp(me->name, name)==0) {
         // this one has a value ?
         if (me->value) {
           // copy to dest buffer
           uint8_t lgvalue = strlen(me->value);
-          strlcpy(value, me->value , lgvalue + 1 );
+          strncpy(value, me->value , lgvalue + 1 );
           return ( value );
         }
       }
