@@ -37,8 +37,9 @@
 
 #ifdef ARDUINO
 #include <Arduino.h>
-#include <time.h>       /* struct tm */
 #endif
+
+#include <time.h>       /* struct tm */
 
 // Define this if you want library to be verbose
 //#define TI_DEBUG
