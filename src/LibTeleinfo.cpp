@@ -348,9 +348,9 @@ Input   : paramter flags
 Output  : true if found and removed
 Comments: -
 ====================================================================== */
-boolean TInfo::valueRemoveFlagged(uint8_t flags)
+bool TInfo::valueRemoveFlagged(uint8_t flags)
 {
-  boolean deleted = false;
+  bool deleted = false;
 
   // Get our linked list 
   ValueList * me = &_valueslist;
@@ -393,9 +393,9 @@ Input   : Pointer to the label name
 Output  : true if found and removed
 Comments: -
 ====================================================================== */
-boolean TInfo::valueRemove(char * name)
+bool TInfo::valueRemove(char * name)
 {
-  boolean deleted = false;
+  bool deleted = false;
 
   // Get our linked list 
   ValueList * me = &_valueslist;
@@ -610,7 +610,7 @@ Purpose : Delete the ENTIRE Linked List, not a value
 Input   : -
 Output  : True if Ok False Otherwise
 ====================================================================== */
-boolean TInfo::listDelete()
+bool TInfo::listDelete()
 {
   // Get our linked list 
   ValueList * me = &_valueslist;
@@ -784,7 +784,7 @@ ValueList * TInfo::checkLine(char * pline)
   char   checksum;
   char  buff[TINFO_BUFSIZE];
   uint8_t flags  = TINFO_FLAGS_NONE;
-  //boolean err = true ;  // Assume  error
+  //bool err = true ;  // Assume  error
   int len ; // Group len
   int i;
   int sep =0;
