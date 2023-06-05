@@ -144,6 +144,77 @@ void UpdatedFrame(ValueList * me)
 }
 
 /* ======================================================================
+Function: tlf_treat_label
+Purpose : do action when received a correct label / value + checksum line
+Input   : plabel : pointer to string containing the label
+        : pvalue : pointer to string containing the associated value
+Output  : 
+Comments: 
+====================================================================== */
+void tlf_treat_label( char * plabel, char * pvalue) 
+{
+  // emoncms need only numeric values
+  if (opts.emoncms)
+  {
+    if (strcmp(plabel, "OPTARIF")==0 )
+    {
+      // L'option tarifaire choisie (Groupe "OPTARIF") est codée sur 4 caractères alphanumériques 
+      /* J'ai pris un nombre arbitraire codé dans l'ordre ci-dessous
+      je mets le 4eme char à 0, trop de possibilités
+      BASE => Option Base. 
+      HC.. => Option Heures Creuses. 
+      EJP. => Option EJP. 
+      BBRx => Option Tempo
+      */
+      pvalue[3] = '\0';
+        
+           if (strcmp(pvalue, "BAS")==0 ) strcpy (pvalue, "1");
+      else if (strcmp(pvalue, "HC.")==0 ) strcpy (pvalue, "2");
+      else if (strcmp(pvalue, "EJP")==0 ) strcpy (pvalue, "3");
+      else if (strcmp(pvalue, "BBR")==0 ) strcpy (pvalue, "4");
+      else strcpy (pvalue, "0");
+    }
+    else if (strcmp(plabel, "HHPHC")==0 )
+    {
+      // L'horaire heures pleines/heures creuses (Groupe "HHPHC") est codé par un caractère A à Y 
+      // J'ai choisi de prendre son code ASCII
+      int code = *pvalue;
+      sprintf(pvalue, "%d", code);
+    }
+    else if (strcmp(plabel, "PTEC")==0 )
+    {
+      // La période tarifaire en cours (Groupe "PTEC"), est codée sur 4 caractères 
+      /* J'ai pris un nombre arbitraire codé dans l'ordre ci-dessous
+      TH.. => Toutes les Heures. 
+      HC.. => Heures Creuses. 
+      HP.. => Heures Pleines. 
+      HN.. => Heures Normales. 
+      PM.. => Heures de Pointe Mobile. 
+      HCJB => Heures Creuses Jours Bleus. 
+      HCJW => Heures Creuses Jours Blancs (White). 
+      HCJR => Heures Creuses Jours Rouges. 
+      HPJB => Heures Pleines Jours Bleus. 
+      HPJW => Heures Pleines Jours Blancs (White). 
+      HPJR => Heures Pleines Jours Rouges. 
+      */
+           if (strcmp(pvalue, "TH..")==0 ) strcpy (pvalue, "1");
+      else if (strcmp(pvalue, "HC..")==0 ) strcpy (pvalue, "2");
+      else if (strcmp(pvalue, "HP..")==0 ) strcpy (pvalue, "3");
+      else if (strcmp(pvalue, "HN..")==0 ) strcpy (pvalue, "4");
+      else if (strcmp(pvalue, "PM..")==0 ) strcpy (pvalue, "5");
+      else if (strcmp(pvalue, "HCJB")==0 ) strcpy (pvalue, "6");
+      else if (strcmp(pvalue, "HCJW")==0 ) strcpy (pvalue, "7");
+      else if (strcmp(pvalue, "HCJR")==0 ) strcpy (pvalue, "8");
+      else if (strcmp(pvalue, "HPJB")==0 ) strcpy (pvalue, "9");
+      else if (strcmp(pvalue, "HPJW")==0 ) strcpy (pvalue, "10");
+      else if (strcmp(pvalue, "HPJR")==0 ) strcpy (pvalue, "11");
+      else strcpy (pvalue, "0");
+      
+    }
+  }
+}
+
+/* ======================================================================
 Function: sendJSON 
 Purpose : dump teleinfo values on serial
 Input   : linked list pointer on the concerned data
@@ -178,6 +249,7 @@ void sendJSON(ValueList * me, bool all)
             // go to next node
             me = me->next;
 
+            tlf_treat_label(me->name, me->value);
             // uniquement sur les nouvelles valeurs ou celles modifiées 
             // sauf si explicitement demandé toutes
             if ( all || ( me->flags & (TINFO_FLAGS_UPDATED | TINFO_FLAGS_ADDED) ) )
