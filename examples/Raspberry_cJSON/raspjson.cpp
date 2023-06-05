@@ -181,6 +181,10 @@ void tlf_treat_label( char * plabel, char * pvalue)
       int code = *pvalue;
       sprintf(pvalue, "%d", code);
     }
+    else if (strcmp(plabel, "DEMAIN")==0 )
+    {
+      if (strcmp(pvalue, "----")==0 ) strcpy (pvalue, "0");
+    }
     else if (strcmp(plabel, "PTEC")==0 )
     {
       // La période tarifaire en cours (Groupe "PTEC"), est codée sur 4 caractères 
