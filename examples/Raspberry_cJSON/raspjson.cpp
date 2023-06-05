@@ -34,7 +34,9 @@
 #include <getopt.h>
 #include <sys/sysinfo.h>
 #include "../../src/LibTeleinfo.h"
+
 #include "cJSON.h"
+#include <curl/curl.h>
 
 // ----------------
 // Constants
@@ -49,6 +51,7 @@
 #define HTTP_APIKEY_SIZE  64    // Max size of apikey
 #define HTTP_NODE_SIZE    64    // Max size of node
 #define HTTP_URL_SIZE     128   // Max size of url (url only, not containing posted data)
+#define HTTP_BUFFER_SIZE  1024  // Where http returned data will be filled
 
 // Some enum for serial
 enum parity_e     {  P_NONE,  P_EVEN,    P_ODD };
@@ -74,7 +77,7 @@ static struct
 // Configuration structure defaults values
 } opts ;
 
-
+void log_syslog( FILE * stream, const char *format, ...);
 void sendJSON(ValueList * me, bool all);
 
 
@@ -86,6 +89,9 @@ struct termios g_oldtermios ; // old serial config
 int   g_exit_pgm;             // indicate en of the program
 struct sysinfo g_info;
 TInfo tinfo; // Teleinfo object
+
+CURL *g_pcurl;
+char  http_buffer[HTTP_BUFFER_SIZE];  // Where http returned data will be filled
 
 // Used to indicate if we need to send all date or just modified ones
 bool fulldata = true;
@@ -219,6 +225,69 @@ void tlf_treat_label( char * plabel, char * pvalue)
 }
 
 /* ======================================================================
+Function: http_write
+Purpose : callback function when curl write return data
+Input   : see curl API
+Output  : -
+Comments: -
+===================================================================== */
+size_t http_write(char *ptr, size_t size, size_t nmemb, void *userdata)
+{
+  // clean up our own receive buffer
+  bzero(&http_buffer, HTTP_BUFFER_SIZE); 
+
+  /* Copy curl's received data into our own buffer */
+  if (size*nmemb < HTTP_BUFFER_SIZE - 1 )
+  {
+    memcpy(&http_buffer, ptr, size*nmemb);
+    return (size*nmemb);
+  }
+  else
+  {
+    memcpy(&http_buffer, ptr, HTTP_BUFFER_SIZE - 1);
+    return (HTTP_BUFFER_SIZE);
+  }
+}
+
+/* ======================================================================
+Function: http_post
+Purpose : post data to emoncms
+Input   : full url to post data
+Output  : true if emoncms returned ok, false otherwise
+Comments: we don't exit if not working, neither mind, take it next time
+===================================================================== */
+int http_post( char * str_url )
+{
+  CURLcode res;
+  int retcode = false;
+
+  // Set curl URL 
+  if ( curl_easy_setopt(g_pcurl, CURLOPT_URL, str_url) != CURLE_OK )
+    log_syslog(stderr, "Error while setting curl url %s : %s", str_url, curl_easy_strerror(res));
+  else
+  {
+    // Perform the request, res will get the return code 
+    if( (res = curl_easy_perform(g_pcurl)) != CURLE_OK)
+    {
+      log_syslog(stderr, "Error on http request %s : %s", str_url, curl_easy_strerror(res));
+    }
+    else
+    { 
+      // return data received 
+      if (opts.verbose)
+        log_syslog(stdout, "http_post %s ==> '%s'\n", str_url, http_buffer);  
+        
+      // emoncms returned string "ok", all went fine
+      if (strcmp(http_buffer, "ok") == 0 )
+      {
+        retcode = true;
+      }
+    }
+  }
+  return retcode;
+}
+
+/* ======================================================================
 Function: sendJSON 
 Purpose : dump teleinfo values on serial
 Input   : linked list pointer on the concerned data
@@ -228,8 +297,10 @@ Comments: -
 ====================================================================== */
 void sendJSON(ValueList * me, bool all)
 {
+    static char emoncms_url[1024];
+    char *string = NULL;
+
     if (me) {
-        char *string = NULL;
         cJSON *uptime = NULL;
         cJSON *me_value = NULL;
 
@@ -299,8 +370,19 @@ void sendJSON(ValueList * me, bool all)
         }
         end:
             cJSON_Delete(trame_json);
-            fprintf(stdout, "%s\n", string);
     }
+    if (opts.emoncms)
+    {
+      sprintf(emoncms_url, "%s?node=%s&data=%s&apikey=%s", opts.url, opts.node, string, opts.apikey);
+      fprintf(stdout, "%s\n", emoncms_url);
+      // Send data to emoncms
+      if (!http_post(emoncms_url))
+      {
+        log_syslog(stderr, "emoncms post error\n");
+      }
+    }
+    else
+      fprintf(stdout, "%s\n", string);
 }
 
 // ======================================================================
@@ -691,6 +773,7 @@ int main(int argc, char **argv)
   struct tm *tmp;
   int n;
   struct sysinfo info;
+  CURLcode res;
   
   g_fd_teleinfo = 0; 
   g_exit_pgm = false;
@@ -704,6 +787,38 @@ int main(int argc, char **argv)
   sigfillset(&sa.sa_mask);
   sigaction (SIGTERM, &sa, NULL);
   sigaction (SIGINT, &sa, NULL); 
+
+  // Initialize curl library
+  if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK ) 
+    fatal("Error initializing Global Curl");
+  else
+  {
+    // Basic curl init
+    g_pcurl = curl_easy_init();
+
+    // If init was not OK
+    if(!g_pcurl)
+      fatal("Error initializing easy Curl");
+    else
+    {
+      // Set curl write callback (to receive http stream response)
+      if (  (res = curl_easy_setopt(g_pcurl, CURLOPT_WRITEFUNCTION, &http_write)) != CURLE_OK )
+        fatal("Error initializing Curl CURLOPT_WRITEFUNCTION options : %s", curl_easy_strerror(res));
+        
+      // set Curl transfer timeout to 5 seconds
+      else if ( (res = curl_easy_setopt(g_pcurl, CURLOPT_TIMEOUT, 5L)) != CURLE_OK )
+        fatal("Error initializing Curl CURLOPT_TIMEOUT options : %s", curl_easy_strerror(res));
+        
+      // set Curl server connection  to 2 seconds
+      else if ( (res = curl_easy_setopt(g_pcurl, CURLOPT_CONNECTTIMEOUT, 2L)) != CURLE_OK )
+        fatal("Error initializing Curl CURLOPT_CONNECTTIMEOUT options : %s", curl_easy_strerror(res));
+      else
+      {
+        if (opts.verbose)
+          log_syslog(stderr, "Curl Initialized\n");
+      }
+    }
+  }
 
   // Open serial port
   g_fd_teleinfo = tlf_init_serial();

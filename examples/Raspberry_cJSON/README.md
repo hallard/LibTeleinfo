@@ -10,7 +10,7 @@ Pour les commentaires et le support vous pouvez allez sur le [forum][8] dédié 
 ### Installation
 Se connecter en ssh sur votre Pi, il doit y avoir les environnements de développement, sinon faites un  
 
-`apt-get install build-essential git-core libcjson-dev`
+`apt-get install build-essential git-core libcjson-dev libcurl4-openssl-dev`
 
 Ensuite :
 ```

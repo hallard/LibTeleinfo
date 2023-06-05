@@ -8,6 +8,9 @@ CFLAGS=-DRASPBERRY_PI -std=c++14
 INCLUDES += -I/usr/include/cjson/
 CXXFLAGS += -lcjson
 
+# cURL
+CXXFLAGS += -lcurl
+
 # raspjson
 all: raspjson
 
