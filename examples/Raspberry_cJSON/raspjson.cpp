@@ -46,6 +46,9 @@
 #define TELEINFO_DEVICE   ""
 #define TELEINFO_BUFSIZE  512
 
+#define HTTP_APIKEY_SIZE  64    // Max size of apikey
+#define HTTP_NODE_SIZE    64    // Max size of node
+#define HTTP_URL_SIZE     128   // Max size of url (url only, not containing posted data)
 
 // Some enum for serial
 enum parity_e     {  P_NONE,  P_EVEN,    P_ODD };
@@ -64,6 +67,10 @@ static struct
   char parity_str[32];
   int databits;
   int verbose;
+  int emoncms;
+  char node[HTTP_NODE_SIZE];
+  char url[HTTP_URL_SIZE];
+  char apikey[HTTP_APIKEY_SIZE];
 // Configuration structure defaults values
 } opts ;
 
@@ -440,6 +447,10 @@ void usage( char * name)
   printf("Options are:\n");
   printf("  --<d>evice dev : open serial device name\n");
   printf("  --<v>erbose    : speak more to user\n");
+  printf("  --<e>moncms  : send data to emoncms\n");
+  printf("  --u<r>l      : emoncms url\n");
+  printf("  --api<k>ey   : emoncms apikey\n");
+  printf("  --<n>ode     : emoncms node\n");
   printf("  --<h>elp\n");
   printf("<?> indicates the equivalent short option.\n");
   printf("Short options are prefixed by \"-\" instead of by \"--\".\n");
@@ -464,6 +475,10 @@ void read_config(int argc, char *argv[])
     {"port",    required_argument,0, 'p'},
     {"verbose", no_argument,      0, 'v'},
     {"help",    no_argument,      0, 'h'},
+    {"emoncms", no_argument,      0, 'e'},
+    {"url",     required_argument,0, 'r'},
+    {"apikey",  required_argument,0, 'k'},
+    {"node",    required_argument,0, 'n'},
     {0, 0, 0, 0}
   };
 
@@ -489,7 +504,8 @@ void read_config(int argc, char *argv[])
 
   
   // default options
-  strcpy( str_opt, "hvd:");
+  strcpy(str_opt, "hvd:");
+  strcat(str_opt,  "er:k:n:");
 
   // We will scan all options given on command line.
   while (1) 
@@ -522,6 +538,22 @@ void read_config(int argc, char *argv[])
         exit(EXIT_SUCCESS);
       break;
 
+      case 'e':
+        opts.emoncms = true;
+      break;
+
+      case 'r':
+        strcpy(opts.url, optarg );
+      break;
+
+      case 'k':
+        strcpy(opts.apikey, optarg );
+      break;
+
+      case 'n':
+        strcpy(opts.node, optarg );
+      break;
+
       default:
         fprintf(stderr, "Unrecognized option.\n");
         fprintf(stderr, "Run %s with '--help'.\n", PRG_NAME);
@@ -551,6 +583,15 @@ void read_config(int argc, char *argv[])
 
     printf("-- Other Stuff -- \n");
     printf("verbose is     : %s\n", opts.verbose? "yes" : "no");
+
+    if (opts.emoncms)
+    {
+      printf("-- Emoncms    -- \n");
+      printf("Emoncms post   : %s\n", opts.emoncms ? "Enabled" : "Disabled");
+      printf("Server url is  : %s\n", opts.url);
+      printf("APIKEY is      : %s\n", opts.apikey);
+      printf("Node is        : %s\n", opts.node);
+    }
     printf("\n");
   } 
 }
