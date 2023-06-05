@@ -74,8 +74,9 @@ static struct
   char node[HTTP_NODE_SIZE];
   char url[HTTP_URL_SIZE];
   char apikey[HTTP_APIKEY_SIZE];
+  int daemon;
 // Configuration structure defaults values
-} opts ;
+} opts;
 
 void log_syslog( FILE * stream, const char *format, ...);
 void sendJSON(ValueList * me, bool all);
@@ -88,7 +89,7 @@ int   g_fd_teleinfo;          // teleinfo serial handle
 struct termios g_oldtermios ; // old serial config
 int   g_exit_pgm;             // indicate en of the program
 struct sysinfo g_info;
-TInfo tinfo; // Teleinfo object
+TInfo tinfo;                  // Teleinfo object
 
 CURL *g_pcurl;
 char  http_buffer[HTTP_BUFFER_SIZE];  // Where http returned data will be filled
@@ -417,7 +418,7 @@ void log_syslog( FILE * stream, const char *format, ...)
   closelog();
   
   // stream passed ? write also to it
-  if (stream && opts.verbose ) 
+  if (stream && opts.verbose && !opts.daemon) 
   {
     fprintf(stream, "%s", tmpbuff);
     //fprintf(stream, "\n");
@@ -483,6 +484,57 @@ void fatal (const char *format, ...)
   clean_exit(EXIT_FAILURE);
 }
 
+/* ======================================================================
+Function: daemonize
+Purpose : daemonize the pocess
+Input   : -
+Output  : -
+Comments: 
+====================================================================== */
+static void daemonize(void)
+{
+  pid_t pid, sid;
+
+  // already a daemon
+  if ( getppid() == 1 )
+    return;
+
+  // Fork off the parent process
+  pid = fork();
+  if (pid < 0)
+    fatal( "fork() : %s", strerror(errno));
+
+  // If we got a good PID, then we can exit the parent process.
+  if (pid > 0)
+    exit(EXIT_SUCCESS);
+
+
+  // At this point we are executing as the child process
+  // ---------------------------------------------------
+
+  // Change the file mode mask
+  umask(0);
+
+  // Create a new SID for the child process
+  sid = setsid();
+  if (sid < 0)
+    fatal( "setsid() : %s", strerror(errno));
+
+  // Change the current working directory.  This prevents the current
+  // directory from being locked; hence not being able to remove it.
+  if ((chdir(PRG_DIR)) < 0)
+    fatal( "chdir('%s') : %s", PRG_DIR, strerror(errno));
+
+  // Close standard files
+  close(STDIN_FILENO);
+  
+  // if verbose mode, allow display on stdout
+  if (!opts.verbose)
+    close(STDOUT_FILENO);
+    
+  // Always display errors on stderr
+  //close(STDERR_FILENO);
+}
 
 /* ======================================================================
 Function: signal_handler
@@ -601,20 +653,21 @@ Comments:
 void usage( char * name)
 {
   printf("%s\n", PRG_NAME);
-  printf("Usage is: %s [options] -d device\n", PRG_NAME);
+  printf("Usage is: %s [options] -y device\n", PRG_NAME);
   printf("Options are:\n");
-  printf("  --<d>evice dev : open serial device name\n");
-  printf("  --<v>erbose    : speak more to user\n");
-  printf("  --<e>moncms  : send data to emoncms\n");
-  printf("  --u<r>l      : emoncms url\n");
-  printf("  --api<k>ey   : emoncms apikey\n");
-  printf("  --<n>ode     : emoncms node\n");
+  printf("  --tt<y> device dev  : open serial device name\n");
+  printf("  --<v>erbose         : speak more to user\n");
+  printf("  --<e>moncms         : send data to emoncms\n");
+  printf("  --u<r>l             : emoncms url\n");
+  printf("  --api<k>ey          : emoncms apikey\n");
+  printf("  --<n>ode            : emoncms node\n");
+  printf("  --<d>aemon          : daemonize the process\n");
   printf("  --<h>elp\n");
   printf("<?> indicates the equivalent short option.\n");
   printf("Short options are prefixed by \"-\" instead of by \"--\".\n");
   printf("Example :\n");
-  printf( "%s -d /dev/ttyAMA0\n\tstart listeming on hardware serial port /dev/ttyAMA0\n\n", PRG_NAME);
-  printf( "%s -d /dev/ttyUSB0\n\tstart listeming on USB microteleinfo dongle\n\n", PRG_NAME);
+  printf( "%s -y /dev/ttyAMA0\n\tstart listeming on hardware serial port /dev/ttyAMA0\n\n", PRG_NAME);
+  printf( "%s -y /dev/ttyACM0\n\tstart listeming on USB microteleinfo dongle\n\n", PRG_NAME);
 }
 
 /* ======================================================================
@@ -630,6 +683,8 @@ void read_config(int argc, char *argv[])
 {
   static struct option longOptions[] =
   {
+    {"daemon",  no_argument,      0, 'd'},
+    {"tty",     required_argument,0, 'y'},
     {"port",    required_argument,0, 'p'},
     {"verbose", no_argument,      0, 'v'},
     {"help",    no_argument,      0, 'h'},
@@ -662,8 +717,8 @@ void read_config(int argc, char *argv[])
 
   
   // default options
-  strcpy(str_opt, "hvd:");
-  strcat(str_opt,  "er:k:n:");
+  strcpy(str_opt, "hvy:");
+  strcat(str_opt,  "der:k:n:");
 
   // We will scan all options given on command line.
   while (1) 
@@ -684,7 +739,7 @@ void read_config(int argc, char *argv[])
         opts.verbose = true;
       break;
 
-      case 'd':
+      case 'y':
         strncpy(opts.port, optarg, sizeof(opts.port) - 1);
         opts.port[sizeof(opts.port) - 1] = '\0';
       break;
@@ -696,6 +751,10 @@ void read_config(int argc, char *argv[])
         exit(EXIT_SUCCESS);
       break;
 
+      case 'd':
+        opts.daemon = true;
+      break;
+        
       case 'e':
         opts.emoncms = true;
       break;
@@ -728,6 +787,13 @@ void read_config(int argc, char *argv[])
     exit(EXIT_FAILURE);
   }
 
+  if (opts.daemon && !opts.emoncms)
+  {
+      fprintf(stderr, "--daemon ignored.\n");
+      fprintf(stderr, "--daemon must be used only in mode emoncms\n");
+      opts.daemon = false;
+  }
+  
   if (opts.verbose)
   {
     printf("%s\n", PRG_NAME);
@@ -833,6 +899,12 @@ int main(int argc, char **argv)
   tinfo.attachNewFrame(NewFrame); 
 
   log_syslog(stdout, "Inits succeded, entering Main loop\n");
+  
+  if (opts.daemon)
+  {
+    log_syslog(stdout, "Starting as a daemon\n");
+    daemonize();
+  }
   
   // Do while not end
   while ( ! g_exit_pgm ) {
