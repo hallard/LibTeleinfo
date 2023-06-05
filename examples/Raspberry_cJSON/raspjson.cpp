@@ -44,6 +44,7 @@
 #define true 1
 #define false 0
 
+#define PRG_DIR    "/usr/local/bin" 
 #define PRG_NAME   "raspjson"
 #define TELEINFO_DEVICE   ""
 #define TELEINFO_BUFSIZE  512
@@ -375,7 +376,10 @@ void sendJSON(ValueList * me, bool all)
     if (opts.emoncms)
     {
       sprintf(emoncms_url, "%s?node=%s&data=%s&apikey=%s", opts.url, opts.node, string, opts.apikey);
-      fprintf(stdout, "%s\n", emoncms_url);
+      if (!opts.daemon) 
+      {
+        fprintf(stdout, "%s\n", emoncms_url);
+      }
       // Send data to emoncms
       if (!http_post(emoncms_url))
       {
@@ -796,7 +800,8 @@ void read_config(int argc, char *argv[])
   
   if (opts.verbose)
   {
-    printf("%s\n", PRG_NAME);
+    printf("%s process ID: %d\n", PRG_NAME, getpid());
+    printf("%s parent's ID: %d\n", PRG_NAME, getppid());
 
     printf("-- Serial Stuff -- \n");
     printf("tty device     : %s\n", opts.port);
