@@ -192,6 +192,7 @@ void tlf_treat_label( char * plabel, char * pvalue)
     else if (strcmp(plabel, "DEMAIN")==0 )
     {
       if (strcmp(pvalue, "----")==0 ) strcpy (pvalue, "0");
+      else strcpy (pvalue, "0");
     }
     else if (strcmp(plabel, "PTEC")==0 )
     {
