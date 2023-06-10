@@ -57,7 +57,6 @@
 // Some enum for serial
 enum parity_e     {  P_NONE,  P_EVEN,    P_ODD };
 enum flowcntrl_e  { FC_NONE,  FC_RTSCTS, FC_XONXOFF };
-enum mode_e       { MODE_NONE, MODE_SEND,   MODE_RECEIVE, MODE_TEST };
 enum value_e      { VALUE_NOTHING, VALUE_ADDED, VALUE_EXIST, VALUE_CHANGED};
 
 // Configuration structure
@@ -70,6 +69,7 @@ static struct
   enum parity_e parity;
   char parity_str[32];
   int databits;
+  int mode;
   int verbose;
   int emoncms;
   char node[HTTP_NODE_SIZE];
@@ -595,10 +595,16 @@ int tlf_init_serial(void)
   // raw mode
   cfmakeraw(&termios);
   
-  // Set serial speed to 1200 bps
-  if (cfsetospeed(&termios, B1200) < 0 || cfsetispeed(&termios, B1200) < 0 )
-    log_syslog(stderr, "cannot set serial speed to 1200 bps: %s",  strerror(errno));
-    
+  if(opts.mode == TINFO_MODE_HISTORIQUE) {
+    // Set serial speed to 1200 bps
+    if (cfsetospeed(&termios, B1200) < 0 || cfsetispeed(&termios, B1200) < 0 )
+      log_syslog(stderr, "cannot set serial speed to 1200 bps (mode historique): %s",  strerror(errno));
+  } else {
+    // Set serial speed to 9600 bps
+    if (cfsetospeed(&termios, B9600) < 0 || cfsetispeed(&termios, B9600) < 0 )
+      log_syslog(stderr, "cannot set serial speed to 9600 bps (mode standard): %s",  strerror(errno));
+  }
+
   // Parity Even
   termios.c_cflag &= ~PARODD;
   termios.c_cflag |= PARENB;    
@@ -659,6 +665,7 @@ void usage( char * name)
   printf("%s\n", PRG_NAME);
   printf("Usage is: %s [options] -y device\n", PRG_NAME);
   printf("Options are:\n");
+  printf("  --<m>ode            : h (=historique) | s (=standard)\n");
   printf("  --tt<y> device dev  : open serial device name\n");
   printf("  --<v>erbose         : speak more to user\n");
   printf("  --<e>moncms         : send data to emoncms\n");
@@ -688,6 +695,7 @@ void read_config(int argc, char *argv[])
   static struct option longOptions[] =
   {
     {"daemon",  no_argument,      0, 'd'},
+    {"mode",    required_argument,0, 'm'},
     {"tty",     required_argument,0, 'y'},
     {"port",    required_argument,0, 'p'},
     {"verbose", no_argument,      0, 'v'},
@@ -712,6 +720,7 @@ void read_config(int argc, char *argv[])
   // default values
   *opts.port = '\0';
   opts.baud = 1200;
+  opts.mode = TINFO_MODE_HISTORIQUE;
   opts.flow = FC_NONE;
   strcpy(opts.flow_str, "none");
   opts.parity = P_EVEN;
@@ -721,7 +730,7 @@ void read_config(int argc, char *argv[])
 
   
   // default options
-  strcpy(str_opt, "hvy:");
+  strcpy(str_opt, "hvm:y:");
   strcat(str_opt,  "der:k:n:");
 
   // We will scan all options given on command line.
@@ -758,7 +767,30 @@ void read_config(int argc, char *argv[])
       case 'd':
         opts.daemon = true;
       break;
+
+      case 'm':
+      switch (optarg[0]) 
+      {
+        case 'h':
+        case 'H':
+          opts.mode = TINFO_MODE_HISTORIQUE;
+          opts.baud = 1200;
+        break;
+        case 's':
+        case 'S':
+          opts.mode = TINFO_MODE_STANDARD;
+          opts.baud = 9600;
+        break;
         
+        default:
+          fprintf(stderr, "--mode '%c' ignored.\n", optarg[0]);
+          fprintf(stderr, "please select at least mode historique or standard\n");
+          fprintf(stderr, "--mode can be one off: 'h' or 's'\n");
+        break;
+
+      }
+    break;
+
       case 'e':
         opts.emoncms = true;
       break;
@@ -809,6 +841,7 @@ void read_config(int argc, char *argv[])
     printf("baudrate is    : %d\n", opts.baud);
     printf("parity is      : %s\n", opts.parity_str);
     printf("databits are   : %d\n", opts.databits);
+    printf("mode is        : %s\n", opts.mode ? "standard" : "historique");
 
     printf("-- Other Stuff -- \n");
     printf("verbose is     : %s\n", opts.verbose? "yes" : "no");
@@ -895,7 +928,11 @@ int main(int argc, char **argv)
   g_fd_teleinfo = tlf_init_serial();
 
   // Init teleinfo
-  tinfo.init();
+  if (opts.mode == TINFO_MODE_STANDARD) {
+    tinfo.init(TINFO_MODE_STANDARD);
+  } else {
+    tinfo.init(TINFO_MODE_HISTORIQUE);
+  }
 
   // Attacher les callback dont nous avons besoin
   // pour cette demo, ADPS et TRAME modifiée
