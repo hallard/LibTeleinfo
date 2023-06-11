@@ -21,10 +21,16 @@ LibTeleinfo.o: ../../src/LibTeleinfo.cpp
 raspjson.o: raspjson.cpp
 	$(CC) $(CFLAGS)  -c raspjson.cpp $(CXXFLAGS) $(INCLUDES)
 
+raspjson_mqtt.o: raspjson_mqtt.cpp
+	$(CC) $(CFLAGS)  -c raspjson.cpp $(CXXFLAGS) $(INCLUDES) -lmosquitto
+
 # ===== Link
 raspjson: raspjson.o LibTeleinfo.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o raspjson raspjson.o LibTeleinfo.o $(CXXFLAGS)
 
+raspjson_mqtt: raspjson_mqtt.o LibTeleinfo.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -o raspjson_mqtt raspjson_mqtt.o LibTeleinfo.o $(CXXFLAGS)
+
 clean: 
-	rm -f *.o raspjson 
+	rm -f *.o raspjson raspjson_mqtt
   
