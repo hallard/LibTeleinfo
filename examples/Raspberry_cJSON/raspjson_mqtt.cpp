@@ -38,6 +38,10 @@
 #include "cJSON.h"
 #include <curl/curl.h>
 
+#include "mosquitto.h"
+struct mosquitto *mosq;
+static bool wait = true;
+
 // ----------------
 // Constants
 // ----------------
@@ -62,6 +66,11 @@ enum value_e      { VALUE_NOTHING, VALUE_ADDED, VALUE_EXIST, VALUE_CHANGED};
 // Configuration structure
 static struct 
 {
+  char *mqtt_host;
+  char *mqtt_id;
+  int mqtt_port;
+  int mqtt_keepalive;
+  char mqtt_basetopic[200];
   char port[128];
   int baud;
   enum flowcntrl_e flow;
@@ -456,6 +465,16 @@ void clean_exit (int exit_code)
     tlf_close_serial(g_fd_teleinfo);
   }
 
+  //Envoi d'un ordre de déconnexion au broker MQTT
+  mosquitto_disconnect(mosq);
+
+  //Arret de l'analyse de la connexion MQTT
+  mosquitto_loop_stop(mosq,false);
+
+  //Néttoyage de la librairie Mosquitto et libération de la mémoire.
+  mosquitto_destroy(mosq);
+  mosquitto_lib_cleanup();
+
   exit(exit_code);
 }
 
@@ -655,6 +674,18 @@ void tlf_close_serial(int device)
 }
 
 /* ======================================================================
+Function: on_publish
+Purpose :
+Input   : 
+Output  : -
+Comments: 
+====================================================================== */
+void on_publish(struct mosquitto *mosq, void *userdata, int mid)
+{
+    wait = false;
+}
+
+/* ======================================================================
 Function: usage
 Purpose : display usage
 Input   : program name
@@ -717,7 +748,14 @@ void read_config(int argc, char *argv[])
   char* bufp = NULL;
   char* opt = NULL;
   char* optdata = NULL; 
-  
+ 
+  // default values MQTT
+  strcpy(opts.mqtt_host, "127.0.0.1");
+  strcpy(opts.mqtt_id, "TIC");
+  opts.mqtt_port = 1884;
+  opts.mqtt_keepalive = 60;
+  strcpy(opts.mqtt_basetopic, "TIC/");
+
   // default values
   *opts.port = '\0';
   opts.baud = 1200;
@@ -879,7 +917,8 @@ int main(int argc, char **argv)
   int n;
   struct sysinfo info;
   CURLcode res;
-  
+  int rc;
+
   g_fd_teleinfo = 0; 
   g_exit_pgm = false;
   
@@ -924,6 +963,31 @@ int main(int argc, char **argv)
       }
     }
   }
+
+  // Open MQTT
+  mosquitto_lib_init(); // Initialisation de la librairie Mosquitto
+
+  //Création d'un pointeur de structure Mosquitto
+  mosq = mosquitto_new(opts.mqtt_id, true, NULL);
+  if (!mosq)
+  {
+            fprintf (stderr, "Initialisation impossible de la librairie Mosquitto\n");
+            exit (-1);
+  }
+
+  //Passage du pointeur de fonction qui valide un publish
+  mosquitto_publish_callback_set(mosq, on_publish);
+
+  //Connexion à un broker MQTT
+  rc = mosquitto_connect(mosq, opts.mqtt_host, opts.mqtt_port, opts.mqtt_keepalive);
+  if(rc)
+  {
+            fprintf (stderr, "Connexion impossible au serveur : %s:%d\n",opts.mqtt_host,opts.mqtt_port);
+            exit (-1);
+  }
+
+  //Debut de l'analyse de la connexion MQTT
+  mosquitto_loop_start(mosq);
 
   // Open serial port
   g_fd_teleinfo = tlf_init_serial();

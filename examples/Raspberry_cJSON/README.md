@@ -7,7 +7,7 @@ J'ai écrit un article [dédié][10] sur cette librairie, vous pouvez aussi voir
 
 Pour les commentaires et le support vous pouvez allez sur le [forum][8] dédié ou dans la [communauté][9] 
 
-### Installation base
+### Installation base : Publication curl uniquement
 Se connecter en ssh sur votre Pi, il doit y avoir les environnements de développement, sinon faites un  
 
 `apt-get install build-essential git-core libcjson-dev libcurl4-openssl-dev`
@@ -20,10 +20,8 @@ make
 ./raspjson
 ```
 
-### Installation MQTT
-Se connecter en ssh sur votre Pi, il doit y avoir les environnements de développement, sinon faites un  
-
-`apt-get install build-essential git-core libcjson-dev libcurl4-openssl-dev mosquitto-dev`
+### Installation MQTT : Publication MQTT
+Lire le README_MQTT.md pour installer MQTT (mosquitto 2.0.15 avec support de Websockets 4.3.2)
 
 Ensuite :
 ```
