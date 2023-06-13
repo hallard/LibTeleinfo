@@ -55,6 +55,24 @@ avec la configuration dans mosquitto.conf $ sudo gedit /usr/local/etc/mosquitto.
 ET les librairies dans /usr/local/include et /usr/local/lib (C et C++)
 ```
 
+### Serveur Mosquitto
+Si vous avez besoin pour vos tests ou être autonome, vous avez maintenant la possibilité de lancer un serveur MQTT (Mosquitto).
+
+```
+$ sudo vi /usr/local/etc/mosquitto.conf
+
+Dans 'General configuration' -> allow_anonymous true
+
+Dans 'Logging'  -> log_dest file /home/pi/mosquitto.log
+                -> log_type all
+
+Dans 'Listener' -> listener 1884 (1884 ou autre en fonction des ports disponible)
+
+
+$ /usr/local/sbin/mosquitto -d -c /usr/local/etc/mosquitto.conf
+Pour vérifier : $ netstat -lpn
+```
+
 ## Divers
 Vous pouvez aller voir les nouveautés et autres projets
 

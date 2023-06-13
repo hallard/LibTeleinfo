@@ -50,6 +50,7 @@ static bool wait = true;
 
 #define PRG_DIR    "/usr/local/bin" 
 #define PRG_NAME   "raspjson"
+#define PRG_VER    "1.1.6"
 #define TELEINFO_DEVICE   ""
 #define TELEINFO_BUFSIZE  512
 
@@ -66,8 +67,9 @@ enum value_e      { VALUE_NOTHING, VALUE_ADDED, VALUE_EXIST, VALUE_CHANGED};
 // Configuration structure
 static struct 
 {
-  char *mqtt_host;
-  char *mqtt_id;
+  int mqtt;
+  char mqtt_host[64];
+  char mqtt_id[64];
   int mqtt_port;
   int mqtt_keepalive;
   char mqtt_basetopic[200];
@@ -311,6 +313,8 @@ void sendJSON(ValueList * me, bool all)
 {
     static char emoncms_url[1024];
     char *string = NULL;
+    int rc;
+    char msg[500];
 
     if (me) {
         cJSON *uptime = NULL;
@@ -382,6 +386,17 @@ void sendJSON(ValueList * me, bool all)
         }
         end:
             cJSON_Delete(trame_json);
+    }
+    if (opts.mqtt) {
+      // Construction d'un message et publish
+      strcpy(msg, string);
+      rc = mosquitto_publish(mosq, NULL, opts.mqtt_basetopic, strlen(msg), msg, 1, false);
+      if(rc)
+	    {
+			  fprintf(stderr, "Error: Publish returned %d, disconnecting.\n", rc);
+		  }
+		  // Attente de la validation d'un publish
+		  while(wait);
     }
     if (opts.emoncms)
     {
@@ -694,12 +709,13 @@ Comments:
 ====================================================================== */
 void usage( char * name)
 {
-  printf("%s\n", PRG_NAME);
+  printf("%s %s\n", PRG_NAME, PRG_VER);
   printf("Usage is: %s [options] -y device\n", PRG_NAME);
   printf("Options are:\n");
   printf("  --<m>ode            : h (=historique) | s (=standard)\n");
   printf("  --tt<y> device dev  : open serial device name\n");
   printf("  --<v>erbose         : speak more to user\n");
+  printf("  --m<q>tt            : send data to mqtt\n");
   printf("  --<e>moncms         : send data to emoncms\n");
   printf("  --u<r>l             : emoncms url\n");
   printf("  --api<k>ey          : emoncms apikey\n");
@@ -732,6 +748,7 @@ void read_config(int argc, char *argv[])
     {"port",    required_argument,0, 'p'},
     {"verbose", no_argument,      0, 'v'},
     {"help",    no_argument,      0, 'h'},
+    {"mqtt",    no_argument,      0, 'q'},
     {"emoncms", no_argument,      0, 'e'},
     {"url",     required_argument,0, 'r'},
     {"apikey",  required_argument,0, 'k'},
@@ -750,9 +767,10 @@ void read_config(int argc, char *argv[])
   char* optdata = NULL; 
  
   // default values MQTT
-  strcpy(opts.mqtt_host, "127.0.0.1");
+  opts.mqtt = true;
+  strcpy(opts.mqtt_host, "0.0.0.0");
   strcpy(opts.mqtt_id, "TIC");
-  opts.mqtt_port = 1884;
+  opts.mqtt_port = 1885;
   opts.mqtt_keepalive = 60;
   strcpy(opts.mqtt_basetopic, "TIC/");
 
@@ -770,7 +788,7 @@ void read_config(int argc, char *argv[])
   
   // default options
   strcpy(str_opt, "hvm:y:");
-  strcat(str_opt,  "der:k:n:");
+  strcat(str_opt,  "dqer:k:n:");
 
   // We will scan all options given on command line.
   while (1) 
@@ -828,7 +846,11 @@ void read_config(int argc, char *argv[])
         break;
 
       }
-    break;
+      break;
+
+      case 'q':
+        opts.mqtt = true;
+      break;
 
       case 'e':
         opts.emoncms = true;
@@ -884,6 +906,14 @@ void read_config(int argc, char *argv[])
 
     printf("-- Other Stuff -- \n");
     printf("verbose is     : %s\n", opts.verbose? "yes" : "no");
+
+    if (opts.mqtt)
+    {
+      printf("-- MQTT    -- \n");
+      printf("mqtt post   : %s\n", opts.mqtt ? "Enabled" : "Disabled");
+      printf("mqtt host   : %s\n", opts.mqtt_host);
+      printf("mqtt port   : %d\n", opts.mqtt_port);
+    }
 
     if (opts.emoncms)
     {
@@ -971,7 +1001,7 @@ int main(int argc, char **argv)
   mosq = mosquitto_new(opts.mqtt_id, true, NULL);
   if (!mosq)
   {
-            fprintf (stderr, "Initialisation impossible de la librairie Mosquitto\n");
+            fprintf (stdout, "Initialisation impossible de la librairie Mosquitto\n");
             exit (-1);
   }
 
@@ -982,7 +1012,7 @@ int main(int argc, char **argv)
   rc = mosquitto_connect(mosq, opts.mqtt_host, opts.mqtt_port, opts.mqtt_keepalive);
   if(rc)
   {
-            fprintf (stderr, "Connexion impossible au serveur : %s:%d\n",opts.mqtt_host,opts.mqtt_port);
+            fprintf (stdout, "Connexion impossible au serveur : %s:%d\n",opts.mqtt_host,opts.mqtt_port);
             exit (-1);
   }
 
