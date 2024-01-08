@@ -116,6 +116,7 @@ enum _State_e {
 // Teleinfo start and end of frame characters
 #define TINFO_STX 0x02
 #define TINFO_ETX 0x03
+#define TINFO_EOT 0x04 // frame interrupt (End Of Transmission)
 #define TINFO_HT  0x09
 #define TINFO_SGR '\n' // start of group
 #define TINFO_EGR '\r' // End of group
@@ -141,7 +142,8 @@ class TInfo
     uint8_t       valuesDump(void);
     char *        valueGet(char * name, char * value);
     char *        valueGet_P(const char * name, char * value);
-    bool       listDelete();
+    bool          listDelete();
+    void          clearStats();
     unsigned char calcChecksum(char *etiquette, char *valeur, char *horodate=NULL) ;
     
     uint32_t      getChecksumErrorCount() {return checksumerror;};
@@ -166,15 +168,17 @@ class TInfo
     char      _separator;
     uint8_t   _recv_idx;  // index in receive buffer
     bool   _frame_updated; // Data on the frame has been updated
-    void      (*_fn_ADPS)(uint8_t phase);
-    void      (*_fn_data)(ValueList * valueslist, uint8_t state);
-    void      (*_fn_new_frame)(ValueList * valueslist);
-    void      (*_fn_updated_frame)(ValueList * valueslist);
 
+    // Frame counters stats
     uint32_t  checksumerror;
     uint32_t  frameformaterror;
     uint32_t  framesizeerror;
     uint32_t  frameinterrupted;
+
+    void      (*_fn_ADPS)(uint8_t phase);
+    void      (*_fn_data)(ValueList * valueslist, uint8_t state);
+    void      (*_fn_new_frame)(ValueList * valueslist);
+    void      (*_fn_updated_frame)(ValueList * valueslist);
 
     //volatile uint8_t *dcport;
     //uint8_t dcpinmask;

@@ -33,14 +33,12 @@
 #include <termios.h>
 #include <getopt.h>
 #include <sys/sysinfo.h>
+
 #include "../../src/LibTeleinfo.h"
+#include "raspjson_stand.h"
 
 #include "cJSON.h"
 #include <curl/curl.h>
-
-#include "mosquitto.h"
-struct mosquitto *mosq;
-static bool wait = true;
 
 // ----------------
 // Constants
@@ -50,7 +48,6 @@ static bool wait = true;
 
 #define PRG_DIR    "/usr/local/bin" 
 #define PRG_NAME   "raspjson"
-#define PRG_VER    "1.1.6"
 #define TELEINFO_DEVICE   ""
 #define TELEINFO_BUFSIZE  512
 
@@ -60,19 +57,13 @@ static bool wait = true;
 #define HTTP_BUFFER_SIZE  1024  // Where http returned data will be filled
 
 // Some enum for serial
-enum parity_e     { P_NONE, P_EVEN, P_ODD };
-enum flowcntrl_e  { FC_NONE, FC_RTSCTS, FC_XONXOFF };
+enum parity_e     {  P_NONE,  P_EVEN,    P_ODD };
+enum flowcntrl_e  { FC_NONE,  FC_RTSCTS, FC_XONXOFF };
 enum value_e      { VALUE_NOTHING, VALUE_ADDED, VALUE_EXIST, VALUE_CHANGED};
 
 // Configuration structure
 static struct 
 {
-  int mqtt;
-  char mqtt_host[64];
-  char mqtt_id[64];
-  int mqtt_port;
-  int mqtt_keepalive;
-  char mqtt_basetopic[200];
   char port[128];
   int baud;
   enum flowcntrl_e flow;
@@ -108,7 +99,36 @@ char  http_buffer[HTTP_BUFFER_SIZE];  // Where http returned data will be filled
 
 // Used to indicate if we need to send all date or just modified ones
 bool fulldata = true;
- 
+
+/* ======================================================================
+Function: getValueFromLabelIndex
+Purpose : return label value from label index
+Input   : label index to search for
+Output  : value filled
+Comments: -
+====================================================================== */
+char * getValueFromLabelIndex(int labelIndex, char * value)
+{
+  fprintf(stdout, "I:%d, V%s\n", labelIndex, &value);
+    if (!value) {
+        return nullptr;
+    }
+    char labelName[17];
+    *value = '\0';
+
+    // Get the label name
+    GetTextIndexed(labelName, sizeof(labelName), labelIndex, kLabel);
+    // Get value of label name
+    tinfo.valueGet(labelName, value) ;
+    
+    // Standard mode has values with space before/after
+    if (opts.mode ==TINFO_MODE_STANDARD) {
+        Trim(value);
+    }
+
+    return *value ? value : nullptr;
+}
+
 /* ======================================================================
 Function: ADPSCallback 
 Purpose : called by library when we detected a ADPS on any phased
@@ -125,9 +145,10 @@ void ADPSCallback(uint8_t phase)
 {
   // Envoyer JSON { "ADPS"; n}
   // n = numero de la phase 1 à 3
-  if (phase == 0)
+  if (phase == 0) {
     phase = 1;
-  printf( "{\"ADPS\":%c}\r\n",'0' + phase);
+  }
+  fprintf(stdout, "{\"ADPS\":%c}\r\n",'0' + phase);
   fflush(stdout);
 }
 
@@ -163,14 +184,32 @@ void UpdatedFrame(ValueList * me)
 }
 
 /* ======================================================================
-Function: tlf_treat_label
+Function: tlf_treat_label_standard
 Purpose : do action when received a correct label / value + checksum line
 Input   : plabel : pointer to string containing the label
         : pvalue : pointer to string containing the associated value
 Output  : 
 Comments: 
 ====================================================================== */
-void tlf_treat_label( char * plabel, char * pvalue) 
+void tlf_treat_label_standard( char * plabel, char * pvalue) 
+{
+  if (strcmp(plabel, "NGTF")==0) {
+    TrimSpace(pvalue);
+  }
+  if (strcmp(plabel, "LTARF")==0) {
+    TrimSpace(pvalue);
+  }
+}
+
+/* ======================================================================
+Function: tlf_treat_label_historique
+Purpose : do action when received a correct label / value + checksum line
+Input   : plabel : pointer to string containing the label
+        : pvalue : pointer to string containing the associated value
+Output  : 
+Comments: 
+====================================================================== */
+void tlf_treat_label_historique( char * plabel, char * pvalue) 
 {
   // emoncms need only numeric values
   if (opts.emoncms)
@@ -302,6 +341,33 @@ int http_post( char * str_url )
 }
 
 /* ======================================================================
+Function: isBlacklistedLabel
+Purpose : check is a label is blacklisted for telemetry data
+Purpose2 : check is a label is listed for telemetry data
+Input   : label name
+Output  : true if blacklisted
+Comments: -
+====================================================================== */
+bool isBlacklistedLabel(char * name, char * value)
+{
+    bool bl = false;
+    if ( strstr(kLabelBlacklist, name) ) {
+        bl = true;
+        if(opts.verbose) {
+          fprintf(stdout, "TIC: %s is blacklisted\n", name);
+        }
+    }
+    if ( !strstr(kLabel, name) ) {
+        bl = true;
+        if(opts.verbose) {
+          fprintf(stdout, "TIC: Label %s:%s no exist in datasheet\n", name, value);
+        }
+        log_syslog(stderr, "TIC: Label [%s:%s] no exist\n",name, value);
+    }
+    return bl;
+}
+
+/* ======================================================================
 Function: sendJSON 
 Purpose : dump teleinfo values on serial
 Input   : linked list pointer on the concerned data
@@ -313,8 +379,6 @@ void sendJSON(ValueList * me, bool all)
 {
     static char emoncms_url[1024];
     char *string = NULL;
-    int rc;
-    char msg[500];
 
     if (me) {
         cJSON *uptime = NULL;
@@ -340,11 +404,23 @@ void sendJSON(ValueList * me, bool all)
             // go to next node
             me = me->next;
 
-            tlf_treat_label(me->name, me->value);
-            // uniquement sur les nouvelles valeurs ou celles modifiées 
-            // sauf si explicitement demandé toutes
-            if ( all || ( me->flags & (TINFO_FLAGS_UPDATED | TINFO_FLAGS_ADDED) ) )
-            {
+            // Does this label blacklisted ?
+            if (!isBlacklistedLabel(me->name, me->value)) {
+
+              if (opts.mode == TINFO_MODE_STANDARD) {
+                //getValueFromLabelIndex(LABEL_LTARF, me->value);
+                //getValueFromLabelIndex(LABEL_NGTF, me->value);
+                tlf_treat_label_standard(me->name, me->value);
+              }
+
+              if(opts.mode == TINFO_MODE_HISTORIQUE) {
+                tlf_treat_label_historique(me->name, me->value);
+              }
+
+              // uniquement sur les nouvelles valeurs ou celles modifiées 
+              // sauf si explicitement demandé toutes
+              if ( all || ( me->flags & (TINFO_FLAGS_UPDATED | TINFO_FLAGS_ADDED) ) )
+              {
                 // we have at least something ?
                 if (me->value && strlen(me->value))
                 {
@@ -377,6 +453,7 @@ void sendJSON(ValueList * me, bool all)
                     }
                     cJSON_AddItemToObject(trame_json, me->name, me_value);
                 }
+              }
             }
         }
         string = cJSON_PrintUnformatted(trame_json);
@@ -386,17 +463,6 @@ void sendJSON(ValueList * me, bool all)
         }
         end:
             cJSON_Delete(trame_json);
-    }
-    if (opts.mqtt) {
-      // Construction d'un message et publish
-      strcpy(msg, string);
-      rc = mosquitto_publish(mosq, NULL, opts.mqtt_basetopic, strlen(msg), msg, 1, false);
-      if(rc)
-      {
-        log_syslog(stderr, "Error: Publish returned %d, disconnecting.\n", rc);
-      }
-      // Attente de la validation d'un publish
-      while(wait);
     }
     if (opts.emoncms)
     {
@@ -479,16 +545,6 @@ void clean_exit (int exit_code)
     // then close
     tlf_close_serial(g_fd_teleinfo);
   }
-
-  //Envoi d'un ordre de déconnexion au broker MQTT
-  mosquitto_disconnect(mosq);
-
-  //Arret de l'analyse de la connexion MQTT
-  mosquitto_loop_stop(mosq,false);
-
-  //Néttoyage de la librairie Mosquitto et libération de la mémoire.
-  mosquitto_destroy(mosq);
-  mosquitto_lib_cleanup();
 
   exit(exit_code);
 }
@@ -609,7 +665,7 @@ Comments: -
 int tlf_init_serial(void)
 {
   int tty_fd, r ;
-  struct termios  termios ;
+  struct termios termios ;
 
   // Open serial device
   if ( (tty_fd = open(opts.port, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK)) < 0 ) 
@@ -689,18 +745,6 @@ void tlf_close_serial(int device)
 }
 
 /* ======================================================================
-Function: on_publish
-Purpose :
-Input   : 
-Output  : -
-Comments: 
-====================================================================== */
-void on_publish(struct mosquitto *mosq, void *userdata, int mid)
-{
-    wait = false;
-}
-
-/* ======================================================================
 Function: usage
 Purpose : display usage
 Input   : program name
@@ -709,13 +753,12 @@ Comments:
 ====================================================================== */
 void usage( char * name)
 {
-  printf("%s %s\n", PRG_NAME, PRG_VER);
+  printf("%s\n", PRG_NAME);
   printf("Usage is: %s [options] -y device\n", PRG_NAME);
   printf("Options are:\n");
   printf("  --<m>ode            : h (=historique) | s (=standard)\n");
   printf("  --tt<y> device dev  : open serial device name\n");
   printf("  --<v>erbose         : speak more to user\n");
-  printf("  --m<q>tt            : send data to mqtt\n");
   printf("  --<e>moncms         : send data to emoncms\n");
   printf("  --u<r>l             : emoncms url\n");
   printf("  --api<k>ey          : emoncms apikey\n");
@@ -748,7 +791,6 @@ void read_config(int argc, char *argv[])
     {"port",    required_argument,0, 'p'},
     {"verbose", no_argument,      0, 'v'},
     {"help",    no_argument,      0, 'h'},
-    {"mqtt",    no_argument,      0, 'q'},
     {"emoncms", no_argument,      0, 'e'},
     {"url",     required_argument,0, 'r'},
     {"apikey",  required_argument,0, 'k'},
@@ -765,15 +807,7 @@ void read_config(int argc, char *argv[])
   char* bufp = NULL;
   char* opt = NULL;
   char* optdata = NULL; 
- 
-  // default values MQTT
-  opts.mqtt = false;
-  strcpy(opts.mqtt_host, "0.0.0.0");
-  strcpy(opts.mqtt_id, "TIC");
-  opts.mqtt_port = 1885;
-  opts.mqtt_keepalive = 60;
-  strcpy(opts.mqtt_basetopic, "TIC/");
-
+  
   // default values
   *opts.port = '\0';
   opts.baud = 1200;
@@ -784,11 +818,11 @@ void read_config(int argc, char *argv[])
   strcpy(opts.parity_str, "even");
   opts.databits = 7;
   opts.verbose = false;
-  opts.emoncms = false;
+
   
   // default options
   strcpy(str_opt, "hvm:y:");
-  strcat(str_opt,  "dqer:k:n:");
+  strcat(str_opt,  "der:k:n:");
 
   // We will scan all options given on command line.
   while (1) 
@@ -846,11 +880,7 @@ void read_config(int argc, char *argv[])
         break;
 
       }
-      break;
-
-      case 'q':
-        opts.mqtt = true;
-      break;
+    break;
 
       case 'e':
         opts.emoncms = true;
@@ -907,14 +937,6 @@ void read_config(int argc, char *argv[])
     printf("-- Other Stuff -- \n");
     printf("verbose is     : %s\n", opts.verbose? "yes" : "no");
 
-    if (opts.mqtt)
-    {
-      printf("-- MQTT    -- \n");
-      printf("mqtt post   : %s\n", opts.mqtt ? "Enabled" : "Disabled");
-      printf("mqtt host   : %s\n", opts.mqtt_host);
-      printf("mqtt port   : %d\n", opts.mqtt_port);
-    }
-
     if (opts.emoncms)
     {
       printf("-- Emoncms    -- \n");
@@ -947,8 +969,7 @@ int main(int argc, char **argv)
   int n;
   struct sysinfo info;
   CURLcode res;
-  int rc;
-
+  
   g_fd_teleinfo = 0; 
   g_exit_pgm = false;
   
@@ -993,31 +1014,6 @@ int main(int argc, char **argv)
       }
     }
   }
-
-  // Open MQTT
-  mosquitto_lib_init(); // Initialisation de la librairie Mosquitto
-
-  //Création d'un pointeur de structure Mosquitto
-  mosq = mosquitto_new(opts.mqtt_id, true, NULL);
-  if (!mosq)
-  {
-            fprintf (stdout, "Initialisation impossible de la librairie Mosquitto\n");
-            exit (-1);
-  }
-
-  //Passage du pointeur de fonction qui valide un publish
-  mosquitto_publish_callback_set(mosq, on_publish);
-
-  //Connexion à un broker MQTT
-  rc = mosquitto_connect(mosq, opts.mqtt_host, opts.mqtt_port, opts.mqtt_keepalive);
-  if(rc)
-  {
-            fprintf (stdout, "Connexion impossible au serveur : %s:%d\n",opts.mqtt_host,opts.mqtt_port);
-            exit (-1);
-  }
-
-  //Debut de l'analyse de la connexion MQTT
-  mosquitto_loop_start(mosq);
 
   // Open serial port
   g_fd_teleinfo = tlf_init_serial();
