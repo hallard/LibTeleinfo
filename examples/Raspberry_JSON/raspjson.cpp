@@ -180,6 +180,11 @@ void sendJSON(ValueList * me, boolean all)
           boolean isNumber = true;
           uint8_t c;
           char * p = me->value;
+          
+          // Format N° Serial 16 caractères
+          if ( strcmp(me->value, "ADCO") || strcmp(me->value, "ADSC") || strcmp(me->value, "PRM") ) {
+             isNumber = false;
+          }
 
           // check if value is number
           while (*p && isNumber) {
@@ -417,7 +422,7 @@ Input   : program name
 Output  : -
 Comments: 
 ====================================================================== */
-int usage( char * name)
+void usage( char * name)
 {
   printf("%s\n", PRG_NAME);
   printf("Usage is: %s [options] -d device\n", PRG_NAME);

@@ -32,13 +32,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#define boolean bool
 #endif
 
 #ifdef ARDUINO
 #include <Arduino.h>
-#include <time.h>       /* struct tm */
 #endif
+
+#include <time.h>       /* struct tm */
 
 // Define this if you want library to be verbose
 //#define TI_DEBUG
@@ -116,6 +116,7 @@ enum _State_e {
 // Teleinfo start and end of frame characters
 #define TINFO_STX 0x02
 #define TINFO_ETX 0x03
+#define TINFO_EOT 0x04 // frame interrupt (End Of Transmission)
 #define TINFO_HT  0x09
 #define TINFO_SGR '\n' // start of group
 #define TINFO_EGR '\r' // End of group
@@ -141,7 +142,8 @@ class TInfo
     uint8_t       valuesDump(void);
     char *        valueGet(char * name, char * value);
     char *        valueGet_P(const char * name, char * value);
-    boolean       listDelete();
+    bool          listDelete();
+    void          clearStats();
     unsigned char calcChecksum(char *etiquette, char *valeur, char *horodate=NULL) ;
     
     uint32_t      getChecksumErrorCount() {return checksumerror;};
@@ -152,8 +154,8 @@ class TInfo
   private:
     void          clearBuffer();
     ValueList *   valueAdd (char * name, char * value, uint8_t checksum, uint8_t * flags, char * horodate=NULL);
-    boolean       valueRemove (char * name);
-    boolean       valueRemoveFlagged(uint8_t flags);
+    bool       valueRemove (char * name);
+    bool       valueRemoveFlagged(uint8_t flags);
     int           labelCount();
     uint32_t      horodate2Timestamp( char * pdate) ;
     void          customLabel( char * plabel, char * pvalue, uint8_t * pflags) ;
@@ -165,16 +167,18 @@ class TInfo
     char      _recv_buff[TINFO_BUFSIZE]; // line receive buffer
     char      _separator;
     uint8_t   _recv_idx;  // index in receive buffer
-    boolean   _frame_updated; // Data on the frame has been updated
-    void      (*_fn_ADPS)(uint8_t phase);
-    void      (*_fn_data)(ValueList * valueslist, uint8_t state);
-    void      (*_fn_new_frame)(ValueList * valueslist);
-    void      (*_fn_updated_frame)(ValueList * valueslist);
+    bool   _frame_updated; // Data on the frame has been updated
 
+    // Frame counters stats
     uint32_t  checksumerror;
     uint32_t  frameformaterror;
     uint32_t  framesizeerror;
     uint32_t  frameinterrupted;
+
+    void      (*_fn_ADPS)(uint8_t phase);
+    void      (*_fn_data)(ValueList * valueslist, uint8_t state);
+    void      (*_fn_new_frame)(ValueList * valueslist);
+    void      (*_fn_updated_frame)(ValueList * valueslist);
 
     //volatile uint8_t *dcport;
     //uint8_t dcpinmask;
