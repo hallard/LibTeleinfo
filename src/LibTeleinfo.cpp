@@ -698,8 +698,8 @@ unsigned char TInfo::calcChecksum(char *etiquette, char *valeur, char * horodate
     if (strlen(etiquette) && strlen(valeur)) {
       while (*etiquette) {
         c =*etiquette++;
-        // Add another validity check since checksum may not be sufficient
-        if ( (c>='A' && c<='Z') || (c>='0' && c<='9') || c=='-' || c=='+') {
+        // Add basic validity check
+        if (c>=0x20 && c<=0x7E) {
           sum += c ;
         } else {
           return 0;
@@ -708,8 +708,8 @@ unsigned char TInfo::calcChecksum(char *etiquette, char *valeur, char * horodate
   
       while(*valeur) {
         c = *valeur++ ;
-        // Add another validity check since checksum may not be sufficient (space authorized in Standard mode)
-        if ( (c>='A' && c<='Z') || (c>='0' && c<='9') || c==' ' || c=='.' || c=='-' || c=='+' || c=='/') {
+        // AAdd basic validity check
+        if (c>=0x20 && c<=0x7E) {
           sum += c ;
         } else {
           return 0;
