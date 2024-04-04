@@ -83,13 +83,15 @@ const char kLabel[] =
     "|SINSTI|SMAXIN|SMAXIN-1|CCASN|CCASN-1|CCAIN|CCAIN-1"
     "|TENSION|UMOY1|UMOY2|UMOY3"
     "|DPM1|FPM1|DPM2|FPM2|DPM3|FPM3"
-    "|IMAX|IMAX1|IMAX2|IMAX3|PMAX|SMAXSN"
+    "|IMAX|IMAX1|IMAX2|IMAX3|PMAX"
     "|DEMAIN|MSG1|MSG2|STGE|PRM|RELAIS|NJOURF|NJOURF+1|PJOURF+1|PPOINTE"
+    "|"
     ;
 
 // Blacklisted label from telemetry
 // Each label shoud be enclosed by pipe
 const char kLabelBlacklist[] =
+    "|DATE"
     "|PJOURF+1"
     "|MSG1"
     "|PPOINTE"
@@ -139,36 +141,6 @@ char* TrimSpace(char *p) {
     }
   }
   return p;
-}
-
-char* GetTextIndexed(char* destination, size_t destination_size, uint16_t index, const char* haystack)
-{
-  // Returns empty string if not found
-  // Returns text of found
-  char* write = destination;
-  const char* read = haystack;
-
-  index++;
-  while (index--) {
-    size_t size = destination_size -1;
-    write = destination;
-    char ch = '.';
-    while ((ch != '\0') && (ch != '|')) {
-      ch = pgm_read_byte(read++);
-      if (size && (ch != '|'))  {
-        *write++ = ch;
-        size--;
-      }
-    }
-    if (0 == ch) {
-      if (index) {
-        write = destination;
-      }
-      break;
-    }
-  }
-  *write = '\0';
-  return destination;
 }
 
 #endif
