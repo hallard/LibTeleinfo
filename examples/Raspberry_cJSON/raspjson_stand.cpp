@@ -39,6 +39,8 @@
 
 #include "cJSON.h"
 #include <curl/curl.h>
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/rotating_file_sink.h" // support for rotating file logging
 
 // ----------------
 // Constants
@@ -81,9 +83,7 @@ static struct
 // Configuration structure defaults values
 } opts;
 
-void log_syslog( FILE * stream, const char *format, ...);
 void sendJSON(ValueList * me, bool all);
-
 
 // ======================================================================
 // Global vars 
@@ -99,35 +99,6 @@ char  http_buffer[HTTP_BUFFER_SIZE];  // Where http returned data will be filled
 
 // Used to indicate if we need to send all date or just modified ones
 bool fulldata = true;
-
-/* ======================================================================
-Function: getValueFromLabelIndex
-Purpose : return label value from label index
-Input   : label index to search for
-Output  : value filled
-Comments: -
-====================================================================== */
-char * getValueFromLabelIndex(int labelIndex, char * value)
-{
-  fprintf(stdout, "I:%d, V%s\n", labelIndex, &value);
-    if (!value) {
-        return nullptr;
-    }
-    char labelName[17];
-    *value = '\0';
-
-    // Get the label name
-    GetTextIndexed(labelName, sizeof(labelName), labelIndex, kLabel);
-    // Get value of label name
-    tinfo.valueGet(labelName, value) ;
-    
-    // Standard mode has values with space before/after
-    if (opts.mode ==TINFO_MODE_STANDARD) {
-        Trim(value);
-    }
-
-    return *value ? value : nullptr;
-}
 
 /* ======================================================================
 Function: ADPSCallback 
@@ -316,19 +287,19 @@ int http_post( char * str_url )
 
   // Set curl URL 
   if ( curl_easy_setopt(g_pcurl, CURLOPT_URL, str_url) != CURLE_OK )
-    log_syslog(stderr, "Error while setting curl url %s : %s", str_url, curl_easy_strerror(res));
+    spdlog::error("Error while setting curl url {} : {}", str_url, curl_easy_strerror(res));
   else
   {
     // Perform the request, res will get the return code 
     if( (res = curl_easy_perform(g_pcurl)) != CURLE_OK)
     {
-      log_syslog(stderr, "Error on http request %s : %s", str_url, curl_easy_strerror(res));
+      spdlog::error("Error on http request {} : {}", str_url, curl_easy_strerror(res));
     }
     else
     { 
       // return data received 
       if (opts.verbose)
-        log_syslog(stdout, "http_post %s ==> '%s'\n", str_url, http_buffer);  
+        spdlog::info("http_post {} ==> '{}'", str_url, http_buffer);  
         
       // emoncms returned string "ok", all went fine
       if (strcmp(http_buffer, "ok") == 0 )
@@ -351,18 +322,21 @@ Comments: -
 bool isBlacklistedLabel(char * name, char * value)
 {
     bool bl = false;
-    if ( strstr(kLabelBlacklist, name) ) {
+    char rname[32] = "";
+    sprintf(rname, "|%s|", name);
+
+    if ( strstr(kLabelBlacklist, rname) ) {
         bl = true;
         if(opts.verbose) {
           fprintf(stdout, "TIC: %s is blacklisted\n", name);
         }
     }
-    if ( !strstr(kLabel, name) ) {
+    if ( !strstr(kLabel, rname) ) {
         bl = true;
         if(opts.verbose) {
           fprintf(stdout, "TIC: Label %s:%s no exist in datasheet\n", name, value);
         }
-        log_syslog(stderr, "TIC: Label [%s:%s] no exist\n",name, value);
+        spdlog::error("TIC: Label [{}:{}] no exist",name, value);
     }
     return bl;
 }
@@ -408,8 +382,6 @@ void sendJSON(ValueList * me, bool all)
             if (!isBlacklistedLabel(me->name, me->value)) {
 
               if (opts.mode == TINFO_MODE_STANDARD) {
-                //getValueFromLabelIndex(LABEL_LTARF, me->value);
-                //getValueFromLabelIndex(LABEL_NGTF, me->value);
                 tlf_treat_label_standard(me->name, me->value);
               }
 
@@ -474,7 +446,7 @@ void sendJSON(ValueList * me, bool all)
       // Send data to emoncms
       if (!http_post(emoncms_url))
       {
-        log_syslog(stderr, "emoncms post error\n");
+        spdlog::error("emoncms post error [{}]", emoncms_url);
       }
     }
     else
@@ -485,41 +457,6 @@ void sendJSON(ValueList * me, bool all)
 // some func declaration
 // ======================================================================
 void tlf_close_serial(int);
-
-/* ======================================================================
-Function: log_syslog
-Purpose : write event to syslog
-Input   : stream to write if needed
-          string to write in printf format
-          printf other arguments
-Output  : -
-Comments: 
-====================================================================== */
-void log_syslog( FILE * stream, const char *format, ...)
-{
-  static char tmpbuff[512]="";
-  va_list args;
-  int len;
-
-  // do a style printf style in ou buffer
-  va_start (args, format);
-  len = vsnprintf (tmpbuff, sizeof(tmpbuff), format, args);
-  tmpbuff[sizeof(tmpbuff) - 1] = '\0';
-  va_end (args);
-
-  // Write to logfile
-  openlog( PRG_NAME, LOG_PID|LOG_CONS, LOG_USER);
-  syslog(LOG_INFO, "%s", tmpbuff);
-  closelog();
-  
-  // stream passed ? write also to it
-  if (stream && opts.verbose && !opts.daemon) 
-  {
-    fprintf(stream, "%s", tmpbuff);
-    //fprintf(stream, "\n");
-    fflush(stream);
-  }
-}
 
 /* ======================================================================
 Function: clean_exit
@@ -540,7 +477,7 @@ void clean_exit (int exit_code)
   {
     // Restore Old parameters.
     if (  (r = tcsetattr(g_fd_teleinfo, TCSAFLUSH, &g_oldtermios)) < 0 )
-      log_syslog(stderr, "cannot restore old parameters %s: %s", opts.port, strerror(errno));
+      spdlog::error("cannot restore old parameters {}: {}", opts.port, strerror(errno));
 
     // then close
     tlf_close_serial(g_fd_teleinfo);
@@ -645,13 +582,13 @@ void signal_handler (int signum)
   {
     // Indicate we want to quit
     g_exit_pgm = true;
-    log_syslog(stdout, "\nReceived SIGINT\n");
+    spdlog::info("Received SIGINT");
   }
   else if ( signum==SIGTERM )
   {
     // Indicate we want to quit
     g_exit_pgm = true;
-    log_syslog(stdout, "\nReceived SIGTERM\n");
+    spdlog::info("Received SIGTERM");
   }
 }
 
@@ -671,14 +608,14 @@ int tlf_init_serial(void)
   if ( (tty_fd = open(opts.port, O_RDWR | O_NOCTTY | O_NDELAY | O_NONBLOCK)) < 0 ) 
     fatal( "tlf_init_serial %s: %s", opts.port, strerror(errno));
   else
-    log_syslog( stdout, "'%s' opened.\n",opts.port);
+    spdlog::info("'{}' opened.",opts.port);
     
   // Set descriptor status flags
   fcntl (tty_fd, F_SETFL, O_RDWR ) ;
 
   // Get current parameters for saving
   if (  (r = tcgetattr(tty_fd, &g_oldtermios)) < 0 )
-    log_syslog(stderr, "cannot get current parameters %s: %s",  opts.port, strerror(errno));
+    spdlog::error("cannot get current parameters {}: {}",  opts.port, strerror(errno));
     
   // copy current parameters and change for our own
   memcpy( &termios, &g_oldtermios, sizeof(termios)); 
@@ -689,11 +626,11 @@ int tlf_init_serial(void)
   if(opts.mode == TINFO_MODE_HISTORIQUE) {
     // Set serial speed to 1200 bps
     if (cfsetospeed(&termios, B1200) < 0 || cfsetispeed(&termios, B1200) < 0 )
-      log_syslog(stderr, "cannot set serial speed to 1200 bps (mode historique): %s",  strerror(errno));
+      spdlog::error("cannot set serial speed to 1200 bps (mode historique): {}",  strerror(errno));
   } else {
     // Set serial speed to 9600 bps
     if (cfsetospeed(&termios, B9600) < 0 || cfsetispeed(&termios, B9600) < 0 )
-      log_syslog(stderr, "cannot set serial speed to 9600 bps (mode standard): %s",  strerror(errno));
+      spdlog::error("cannot set serial speed to 9600 bps (mode standard): {}",  strerror(errno));
   }
 
   // Parity Even
@@ -716,7 +653,7 @@ int tlf_init_serial(void)
 
   // now setup the whole parameters
   if ( tcsetattr (tty_fd, TCSANOW | TCSAFLUSH, &termios) <0) 
-    log_syslog(stderr, "cannot set current parameters %s: %s",  opts.port, strerror(errno));
+    spdlog::error("cannot set current parameters {}: {}",  opts.port, strerror(errno));
     
   // Sleep 50ms
   // trust me don't forget this one, it will remove you some
@@ -973,6 +910,15 @@ int main(int argc, char **argv)
   g_fd_teleinfo = 0; 
   g_exit_pgm = false;
   
+  bool m_gen_log = true;
+  if(m_gen_log) {
+    spdlog::set_level(spdlog::level::debug);
+    auto file_logger = spdlog::rotating_logger_mt("file_logger", "/home/pi/linky.log", 1024 * 1024 * 5, 3);
+    spdlog::set_default_logger(file_logger);
+    spdlog::flush_on(spdlog::level::debug);
+    spdlog::info("{} - LINKY Téléinfo", __FUNCTION__);
+  }
+
   // get configuration
   read_config(argc, argv);
 
@@ -1010,7 +956,7 @@ int main(int argc, char **argv)
       else
       {
         if (opts.verbose)
-          log_syslog(stderr, "Curl Initialized\n");
+          spdlog::info("Curl Initialized");
       }
     }
   }
@@ -1031,11 +977,11 @@ int main(int argc, char **argv)
   tinfo.attachUpdatedFrame(UpdatedFrame);
   tinfo.attachNewFrame(NewFrame); 
 
-  log_syslog(stdout, "Inits succeded, entering Main loop\n");
+  spdlog::info("Inits succeded, entering Main loop");
   
   if (opts.daemon)
   {
-    log_syslog(stdout, "Starting as a daemon\n");
+    spdlog::info("Starting as a daemon");
     daemonize();
   }
   
@@ -1058,8 +1004,9 @@ int main(int argc, char **argv)
     usleep(10000);
   } 
   
-  log_syslog(stderr, "Program terminated\n");
-  
+  spdlog::info("Program terminated");
+  spdlog::shutdown();
+
   clean_exit(EXIT_SUCCESS);
   
   // avoid compiler warning
